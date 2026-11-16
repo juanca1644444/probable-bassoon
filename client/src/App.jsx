@@ -125,6 +125,13 @@ function AppShell() {
           const store = useAppStore.getState();
 
           if (data.type === 'new_message') {
+            // Aseguramos que el chat exista en la lista lateral
+            if (data.chat) {
+              store.addOrUpdateChat(data.chat);
+            } else if (!store.chats.some(c => c.id === data.chatId)) {
+              fetchChats().then(freshChats => store.setChats(freshChats)).catch(() => {});
+            }
+
             const currentMsgs = store.messages[data.chatId] || [];
             // Si este cliente/tab ya tiene este mensaje exacto por ID, actualizamos su estado y no lo duplicamos
             if (data.message?.id && currentMsgs.some(m => m.id === data.message.id)) {
@@ -141,7 +148,7 @@ function AppShell() {
 
             const currentActive = store.activeChat;
             if (data.chatId !== currentActive?.id) {
-              const chat = store.chats.find(c => c.id === data.chatId);
+              const chat = store.chats.find(c => c.id === data.chatId) || data.chat;
               if (chat) {
                 const msgText =
                   data.message.type === 'audio' ? '🎤 Nota de voz'
@@ -160,6 +167,10 @@ function AppShell() {
                 });
                 playNotificationSound();
               }
+            }
+          } else if (data.type === 'chat_updated' || data.type === 'new_chat') {
+            if (data.chat) {
+              store.addOrUpdateChat(data.chat);
             }
           } else if (data.type === 'typing') {
             store.setTyping(data.chatId, data.userId, true);

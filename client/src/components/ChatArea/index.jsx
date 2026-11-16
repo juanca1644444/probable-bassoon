@@ -546,24 +546,24 @@ function DateSeparator({ date }) {
 function InternalNoteCard({ note, onDelete }) {
   return (
     <div className="flex justify-center my-3 px-4 animate-fade-in">
-      <div className="w-full max-w-xl bg-amber-500/15 dark:bg-amber-950/40 border border-amber-500/40 dark:border-amber-500/50 rounded-2xl p-3.5 shadow-md backdrop-blur-sm transition-all hover:border-amber-500/70">
-        <div className="flex items-center justify-between pb-2 border-b border-amber-500/30 mb-2">
+      <div className="w-full max-w-xl bg-amber-100/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/50 rounded-2xl p-3.5 shadow-md backdrop-blur-sm transition-all hover:border-amber-400">
+        <div className="flex items-center justify-between pb-2 border-b border-amber-300/60 dark:border-amber-500/30 mb-2">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-500/40 uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-950 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-400 dark:border-amber-500/40 uppercase tracking-wider">
               <span>🔒 NOTA INTERNA</span>
             </span>
-            <span className="text-xs font-bold text-amber-950 dark:text-amber-200">
+            <span className="text-xs font-bold text-slate-900 dark:text-amber-200">
               👤 {note.authorName || 'Agente'}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-amber-900/80 dark:text-amber-300/70 font-medium">
+            <span className="text-[11px] text-slate-700 dark:text-amber-300/70 font-semibold">
               {formatTime(note.createdAt)}
             </span>
             {onDelete && (
               <button
                 onClick={() => onDelete(note.id)}
-                className="text-amber-900/70 dark:text-amber-400/60 hover:text-red-500 p-1 rounded hover:bg-black/10 dark:hover:bg-black/20 transition-colors"
+                className="text-slate-600 dark:text-amber-400/60 hover:text-red-500 p-1 rounded hover:bg-black/10 dark:hover:bg-black/20 transition-colors"
                 title="Eliminar nota interna"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -574,16 +574,16 @@ function InternalNoteCard({ note, onDelete }) {
           </div>
         </div>
 
-        <div className="text-sm text-amber-950 dark:text-amber-100/90 whitespace-pre-wrap leading-relaxed px-0.5 font-medium">
+        <div className="text-sm text-slate-900 dark:text-amber-100/90 whitespace-pre-wrap leading-relaxed px-0.5 font-medium">
           {note.content}
         </div>
 
-        <div className="flex items-center justify-between pt-2 mt-2 border-t border-amber-500/20 text-[10px] text-amber-900/80 dark:text-amber-300/60 font-medium">
+        <div className="flex items-center justify-between pt-2 mt-2 border-t border-amber-300/40 dark:border-amber-500/20 text-[10px] text-slate-700 dark:text-amber-300/60 font-semibold">
           <span className="flex items-center gap-1">
             <span>🛡️</span>
             <span>Visible únicamente para el equipo interno · NUNCA se envía al cliente</span>
           </span>
-          <span className="font-mono text-[9px] text-amber-950/70 dark:text-amber-400/50 font-bold">CRM CONFIDENCIAL</span>
+          <span className="font-mono text-[9px] text-slate-800 dark:text-amber-400/50 font-bold">CRM CONFIDENCIAL</span>
         </div>
       </div>
     </div>

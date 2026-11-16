@@ -36,6 +36,7 @@ let connectedUser = null;
 let broadcastFn = null;
 let reconnectTimer = null;
 let isInitializing = false;
+const autoReplyCooldowns = new Map(); // remoteJid -> timestamp
 
 /**
  * Configure external WebSocket broadcast function
@@ -177,6 +178,21 @@ async function initWhatsAppGateway() {
       }
     });
 
+    // ── Smart Auto-Reply Generator ──────────────────────────────────────────
+    function getAutoReplyText(userMessage, pushName) {
+      const lower = (userMessage || '').toLowerCase();
+      if (lower.includes('hola') || lower.includes('buenas') || lower.includes('saludos') || lower.includes('hey') || lower.includes('buenos')) {
+        return `¡Hola${pushName ? ' ' + pushName : ''}! 👋 Gracias por comunicarte con CHASKYAPP / Servicios Educativos Huiracocha. Soy el asistente virtual inteligente. ¿En qué podemos orientarte el día de hoy?`;
+      }
+      if (lower.includes('precio') || lower.includes('cuanto') || lower.includes('costo') || lower.includes('plan') || lower.includes('tarifa') || lower.includes('matricula')) {
+        return '💼 Con gusto te brindamos información de costos y planes. Un asesor comercial especializado se pondrá en contacto contigo en breve para brindarte una cotización personalizada.';
+      }
+      if (lower.includes('horario') || lower.includes('hora') || lower.includes('abierto') || lower.includes('atencion')) {
+        return '🕘 Nuestro horario de atención es de Lunes a Sábado de 8:00 AM a 8:00 PM. Nuestro bot de IA y canales digitales están activos 24/7.';
+      }
+      return `¡Hola${pushName ? ' ' + pushName : ''}! 👋 Gracias por comunicarte con CHASKYAPP / Servicios Educativos Huiracocha. Hemos recibido tu mensaje: "${(userMessage || '').slice(0, 45)}...". En breve un asesor te responderá.`;
+    }
+
     // ── Real-time Incoming Messages Listener ─────────────────────────────────
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
@@ -192,8 +208,19 @@ async function initWhatsAppGateway() {
           continue;
         }
 
-        const cleanPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
-        const pushName = m.pushName || `Contacto +${cleanPhone}`;
+        const isGroup = remoteJid.endsWith('@g.us');
+        let cleanPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '').replace('@lid', '');
+        let pushName = m.pushName || '';
+
+        if (!pushName) {
+          if (cleanPhone.length >= 9 && !cleanPhone.includes('@')) {
+            pushName = `+${cleanPhone}`;
+          } else if (isGroup) {
+            pushName = 'Grupo de WhatsApp';
+          } else {
+            pushName = 'Contacto WhatsApp';
+          }
+        }
 
         // Extract message text content
         const messageText =
@@ -222,6 +249,9 @@ async function initWhatsAppGateway() {
             Date.now()
           );
           contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(contactId);
+        } else if (m.pushName && (!contact.name || contact.name.startsWith('Contacto +') || contact.name.startsWith('+'))) {
+          db.prepare('UPDATE contacts SET name = ? WHERE id = ?').run(m.pushName, contact.id);
+          contact.name = m.pushName;
         }
 
         // 2. Get or create chat in SQLite
@@ -230,9 +260,9 @@ async function initWhatsAppGateway() {
         if (!chat) {
           const chatId = 'chat_' + uuidv4().slice(0, 8);
           db.prepare(`
-            INSERT INTO chats (id, contactId, type, lastMessage, lastMessageTime, unreadCount, createdAt)
-            VALUES (?, ?, 'individual', ?, ?, 1, ?)
-          `).run(chatId, contact.id, messageText, now, now);
+            INSERT INTO chats (id, contactId, type, groupName, lastMessage, lastMessageTime, unreadCount, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+          `).run(chatId, contact.id, isGroup ? 'group' : 'individual', isGroup ? pushName : null, messageText, now, now);
           chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(chatId);
         } else {
           db.prepare(`
@@ -251,11 +281,31 @@ async function initWhatsAppGateway() {
 
         const savedMsg = db.prepare('SELECT * FROM messages WHERE id = ?').get(msgId);
 
+        // Enriched chat row joining contact details for the frontend
+        const fullChat = db.prepare(`
+          SELECT c.*,
+                 co.name AS contactName,
+                 co.avatar AS contactAvatar,
+                 co.isOnline AS contactIsOnline,
+                 co.lastSeen AS contactLastSeen,
+                 co.status AS contactStatus,
+                 co.phone AS contactPhone
+          FROM chats c
+          LEFT JOIN contacts co ON c.contactId = co.id
+          WHERE c.id = ?
+        `).get(chat.id);
+
         // 4. Emit live update through WebSocket to CHASKYAPP Web Client
+        notifyClients({
+          type: 'chat_updated',
+          chat: fullChat,
+        });
+
         notifyClients({
           type: 'new_message',
           chatId: chat.id,
           message: savedMsg,
+          chat: fullChat,
         });
 
         // 5. Automatic CRM Lead Sync to Google Sheets (Zero-Cost)
@@ -269,6 +319,73 @@ async function initWhatsAppGateway() {
         }).catch((crmErr) => {
           console.warn('[WhatsApp Gateway] Error al sincronizar con Google Sheets CRM:', crmErr.message);
         });
+
+        // 6. Automated Auto-Responder / Bot Response for 1-to-1 chats
+        if (!isGroup && !m.key.fromMe) {
+          try {
+            const autoSetting = db.prepare("SELECT value FROM settings WHERE key = 'autoResponderEnabled'").get();
+            const isAutoEnabled = !autoSetting || autoSetting.value === 'true';
+
+            if (isAutoEnabled) {
+              const lastReply = autoReplyCooldowns.get(remoteJid) || 0;
+              // 3-minute cooldown per user to prevent loops or multiple greetings
+              if (now - lastReply > 3 * 60 * 1000) {
+                autoReplyCooldowns.set(remoteJid, now);
+
+                const botReply = getAutoReplyText(messageText, pushName);
+
+                setTimeout(async () => {
+                  try {
+                    await sock.sendMessage(remoteJid, { text: botReply });
+                    const autoMsgId = 'bot_' + uuidv4().slice(0, 8);
+                    const autoTime = Date.now();
+
+                    db.prepare(`
+                      INSERT INTO messages (id, chatId, senderId, senderName, content, type, timestamp, status)
+                      VALUES (?, ?, 'me', 'Chasky Bot', ?, 'text', ?, 'delivered')
+                    `).run(autoMsgId, chat.id, botReply, autoTime);
+
+                    db.prepare(`
+                      UPDATE chats SET lastMessage = ?, lastMessageTime = ? WHERE id = ?
+                    `).run(botReply, autoTime, chat.id);
+
+                    const savedBotMsg = db.prepare('SELECT * FROM messages WHERE id = ?').get(autoMsgId);
+                    const updatedChatAfterBot = db.prepare(`
+                      SELECT c.*,
+                             co.name AS contactName,
+                             co.avatar AS contactAvatar,
+                             co.isOnline AS contactIsOnline,
+                             co.lastSeen AS contactLastSeen,
+                             co.status AS contactStatus,
+                             co.phone AS contactPhone
+                      FROM chats c
+                      LEFT JOIN contacts co ON c.contactId = co.id
+                      WHERE c.id = ?
+                    `).get(chat.id);
+
+                    notifyClients({
+                      type: 'chat_updated',
+                      chat: updatedChatAfterBot,
+                    });
+
+                    notifyClients({
+                      type: 'new_message',
+                      chatId: chat.id,
+                      message: savedBotMsg,
+                      chat: updatedChatAfterBot,
+                    });
+
+                    console.log(`🤖 [Auto-Responder] Respuesta enviada exitosamente a ${remoteJid}`);
+                  } catch (autoErr) {
+                    console.warn('⚠️ [Auto-Responder] Error al enviar respuesta automática:', autoErr.message);
+                  }
+                }, 1000);
+              }
+            }
+          } catch (botCheckErr) {
+            console.warn('[Auto-Responder] Error verificando ajustes:', botCheckErr.message);
+          }
+        }
       }
     });
 
@@ -291,12 +408,18 @@ async function sendTextMessage(toPhone, text) {
     throw new Error('El gateway de WhatsApp no está conectado. Por favor escanea el código QR en Ajustes.');
   }
 
-  const cleanNumber = String(toPhone).replace(/[^0-9]/g, '');
-  if (!cleanNumber || cleanNumber.length < 8) {
-    throw new Error(`Número de teléfono no válido: ${toPhone}`);
+  let jid;
+  const str = String(toPhone).trim();
+  if (str.includes('@')) {
+    jid = str;
+  } else {
+    const cleanNumber = str.replace(/[^0-9]/g, '');
+    if (!cleanNumber || cleanNumber.length < 8) {
+      throw new Error(`Número de teléfono no válido: ${toPhone}`);
+    }
+    jid = `${cleanNumber}@s.whatsapp.net`;
   }
 
-  const jid = `${cleanNumber}@s.whatsapp.net`;
   const result = await sock.sendMessage(jid, { text });
   return result;
 }

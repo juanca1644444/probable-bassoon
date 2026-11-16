@@ -40,10 +40,10 @@ router.get('/status', (req, res) => {
 router.get('/qr', (req, res) => {
   try {
     const status = getGatewayStatus();
-    const acceptsHtml = req.headers.accept && req.headers.accept.includes('text/html') && req.query.format !== 'json';
+    const wantsJson = req.query.format === 'json' || (req.headers.accept && req.headers.accept === 'application/json');
 
     // ── Visual HTML Viewer for Direct Browser Navigation ────────────────────
-    if (acceptsHtml) {
+    if (!wantsJson) {
       const isConnected = status.status === 'connected';
       const phone = status.user?.id ? status.user.id.split(':')[0] : '';
       const name = status.user?.name || 'CHASKYAPP';
@@ -173,6 +173,7 @@ router.get('/qr', (req, res) => {
         <div class="connected-icon">🟢</div>
         <h2 style="font-size: 18px; margin-bottom: 8px; color: #00a884;">¡Teléfono Vinculado y Activo!</h2>
         <p style="font-size: 13px; color: #8696a0;">Conectado como: <strong>+${phone}</strong> (${name})</p>
+        <a href="http://localhost:5173/" style="display:inline-block; margin-top:16px; padding:10px 20px; background:#00a884; color:#111b21; font-weight:700; border-radius:12px; text-decoration:none; font-size:14px; box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);">🚀 Abrir CHASKYAPP (localhost:5173)</a>
       </div>
     ` : `
       <div class="qr-container">
