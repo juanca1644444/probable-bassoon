@@ -68,7 +68,7 @@ router.get('/qr', (req, res) => {
 });
 
 /**
- * POST /api/whatsapp/connect
+ * POST /api/whatsapp/connect & /api/whatsapp/restart
  * Forces a connection attempt or restarts the gateway if disconnected
  */
 router.post('/connect', async (req, res) => {
@@ -86,6 +86,18 @@ router.post('/connect', async (req, res) => {
     res.json({
       success: true,
       message: 'Inicializando gateway de WhatsApp. El código QR estará disponible en breve.',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/restart', async (req, res) => {
+  try {
+    await initWhatsAppGateway();
+    res.json({
+      success: true,
+      message: 'Reinicio de conexión iniciado.',
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
