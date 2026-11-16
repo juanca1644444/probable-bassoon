@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+yarn-error.log
+.git
+.gitignore
+.env
+.env.*
+*.db
+*.db-shm
+*.db-wal
+uploads/*
+!uploads/.gitkeep
+dist
+coverage
+tests
+.DS_Store
+Thumbs.db

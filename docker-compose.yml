@@ -1,0 +1,87 @@
+# ==============================================================================
+# CHASKYAPP - Production Docker Compose Orchestration
+# ==============================================================================
+# Services:
+#   - backend: Node.js 20 Alpine + Express + SQLite (WAL mode) + WebSocket
+#   - frontend: React + Vite production build served via Nginx (Reverse Proxy)
+#
+# Usage:
+#   docker compose up -d --build
+#   docker compose logs -f
+#   docker compose down
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ─── Backend Service ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: chaskyapp_backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_PATH=/app/data/chaskyapp.db
+      - UPLOAD_DIR=/app/uploads
+      - JWT_SECRET=${JWT_SECRET:-chasky_super_secret_jwt_production_key_2026}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - MAX_BODY_LIMIT=100mb
+    volumes:
+      # Persistent SQLite database volume (protects .db, .db-wal, and .db-shm)
+      - chasky_db_data:/app/data
+      # Persistent multimedia uploads volume (voice notes, images, catalogs)
+      - chasky_uploads_data:/app/uploads
+    ports:
+      # Expose backend port for direct API integrations or webhooks if needed
+      - "${BACKEND_PORT:-3001}:3001"
+    networks:
+      - chasky_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3001/api/chats || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ─── Frontend & Nginx Gateway Service ───────────────────────────────────────
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: chaskyapp_frontend
+    restart: unless-stopped
+    ports:
+      # Standard HTTP port
+      - "${HTTP_PORT:-80}:80"
+      # Optional HTTPS port for SSL termination
+      - "${HTTPS_PORT:-443}:443"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - chasky_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+# ─── Persistent Storage Volumes ───────────────────────────────────────────────
+volumes:
+  chasky_db_data:
+    name: chaskyapp_db_data
+    driver: local
+  chasky_uploads_data:
+    name: chaskyapp_uploads_data
+    driver: local
+
+# ─── Private Internal Network ─────────────────────────────────────────────────
+networks:
+  chasky_network:
+    name: chaskyapp_network
+    driver: bridge

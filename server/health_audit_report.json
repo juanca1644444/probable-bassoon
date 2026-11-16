@@ -1,0 +1,98 @@
+{
+  "database": {
+    "passed": true,
+    "issues": [],
+    "details": {
+      "tableCount": 63,
+      "tables": [
+        "agents",
+        "ai_agent_profiles",
+        "ai_copilot_logs",
+        "ai_departments",
+        "ai_routing_logs",
+        "ai_routing_rules",
+        "api_keys",
+        "audit_logs",
+        "bot_flows",
+        "broadcast_lists",
+        "broadcast_members",
+        "business_catalog",
+        "business_profile",
+        "call_recordings",
+        "calls",
+        "campaign_logs",
+        "campaigns",
+        "channel_bridge_logs",
+        "channel_credentials",
+        "channel_mappings",
+        "chat_assignments",
+        "chat_labels",
+        "chat_stage_relations",
+        "chats",
+        "contacts",
+        "crm_stages",
+        "csat_surveys",
+        "custom_stickers",
+        "document_signatures",
+        "document_templates",
+        "generated_documents",
+        "group_members",
+        "internal_notes",
+        "ivr_nodes",
+        "knowledge_documents",
+        "labels",
+        "license_keys",
+        "linked_devices",
+        "locked_chats",
+        "messages",
+        "orders",
+        "payments",
+        "permissions",
+        "phone_numbers",
+        "pinned_messages",
+        "plans",
+        "quick_replies",
+        "roles",
+        "scheduled_messages",
+        "sentiment_logs",
+        "settings",
+        "starred_messages",
+        "statuses",
+        "subscriptions",
+        "telephony_calls",
+        "tenant_settings",
+        "tenant_usage_ledger",
+        "tenants",
+        "user_roles",
+        "vector_chunks",
+        "voice_transcriptions",
+        "webhook_logs",
+        "webhooks"
+      ]
+    }
+  },
+  "endpoints": {
+    "passed": true,
+    "issues": [],
+    "testedCount": 23,
+    "passedCount": 23
+  },
+  "rag": {
+    "passed": true,
+    "issues": []
+  },
+  "sync": {
+    "passed": true,
+    "issues": []
+  },
+  "modules": {
+    "passed": true,
+    "issues": []
+  },
+  "autoFixes": [
+    "Exportación corregida de generatePdfBuffer en server/services/documentService.js",
+    "Alias /api/saas/license/status implementado en server/saasRoutes.js",
+    "Alias /api/channels/credentials y /api/channels/mappings en server/services/channelBridge.js",
+    "Alias /api/telephony/nodes añadido en server/services/telephonyService.js"
+  ]
+}

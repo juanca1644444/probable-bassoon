@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-pro",
+  "version": "1.0.0",
+  "description": "WhatsApp Pro / Vuelo — Advanced messaging app",
+  "scripts": {
+    "dev": "concurrently -n SERVER,CLIENT -c green,blue \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && node index.js",
+    "dev:client": "cd client && npx vite --host 0.0.0.0 --port 5173",
+    "dev:lan": "concurrently -n SERVER,CLIENT -c green,blue \"cd server && node index.js\" \"cd client && npx vite --host 0.0.0.0 --port 5173\"",
+    "install:all": "cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

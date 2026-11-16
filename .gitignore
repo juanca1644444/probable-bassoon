@@ -1,0 +1,56 @@
+# .gitignore — WhatsApp Pro / Vuelo
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+client/dist/
+
+# Uploads & media
+server/uploads/
+*.mp4
+*.mp3
+*.ogg
+*.wav
+
+# Database
+server/*.db
+server/*.sqlite
+server/*.sqlite3
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+service_account.json
+credentials.json
+google_drive_key.json
+backups/downloads/
+backups/*.enc
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Temp
+*.tmp
+*.bak
