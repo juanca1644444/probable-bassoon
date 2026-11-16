@@ -48,7 +48,16 @@ wss.on('connection', (ws) => {
     try {
       const data = JSON.parse(raw.toString());
       // Broadcast chat & call signaling to all OTHER clients
-      const callTypes = ['START_CALL', 'ACCEPT_CALL', 'REJECT_CALL', 'END_CALL'];
+      const callTypes = [
+        'START_CALL',
+        'ACCEPT_CALL',
+        'REJECT_CALL',
+        'END_CALL',
+        'WEBRTC_OFFER',
+        'WEBRTC_ANSWER',
+        'WEBRTC_ICE_CANDIDATE',
+        'TOGGLE_MEDIA'
+      ];
       if (
         data.type === 'typing' ||
         data.type === 'stop_typing' ||

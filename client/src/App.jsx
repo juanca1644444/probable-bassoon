@@ -215,11 +215,14 @@ function AppShell() {
             const isCallFromMe = data.callerId === myId || (data.callerId === 'me' && (myId === 'agent-me' || myId === 'me'));
             if (!isCallFromMe) {
               store.receiveCall(data);
+              window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
             }
           } else if (data.type === 'ACCEPT_CALL') {
             store.setCallStatus('connected');
+            window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
           } else if (data.type === 'REJECT_CALL') {
             store.endCall();
+            window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
             store.addToast({
               id: `toast-${Date.now()}`,
               chatId: data.chatId,
@@ -229,6 +232,14 @@ function AppShell() {
             });
           } else if (data.type === 'END_CALL') {
             store.endCall();
+            window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
+          } else if (
+            data.type === 'WEBRTC_OFFER' ||
+            data.type === 'WEBRTC_ANSWER' ||
+            data.type === 'WEBRTC_ICE_CANDIDATE' ||
+            data.type === 'TOGGLE_MEDIA'
+          ) {
+            window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
           }
         } catch {}
       };

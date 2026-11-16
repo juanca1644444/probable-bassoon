@@ -254,13 +254,20 @@ const useAppStore = create((set, get) => ({
       }
     })
 
-    // Simulate auto-connection after 3s if not answered by remote peer
+    // Timeout de 45 segundos si no contestan
     setTimeout(() => {
       const current = get().activeCall
       if (current && current.callId === callId && current.status === 'ringing') {
-        set({ activeCall: { ...current, status: 'connected' } })
+        get().endCall()
+        get().addToast({
+          id: `toast-${Date.now()}`,
+          chatId: chat.id,
+          name: chat.contactName || chat.groupName || 'Contacto',
+          message: 'Llamada no contestada',
+          avatar: chat.contactAvatar || '',
+        })
       }
-    }, 3000)
+    }, 45000)
   },
 
   receiveCall: (data) => {
