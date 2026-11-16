@@ -857,11 +857,11 @@ export default function ChatArea() {
     }
   }
 
-  // Load quick replies on mount
+  // Load quick replies on mount (relative URL for LAN & PWA mobile support)
   useEffect(() => {
     const loadQuickReplies = async () => {
       try {
-        const res = await fetch('http://localhost:3001/api/quick-replies')
+        const res = await fetch('/api/quick-replies')
         if (res.ok) {
           const data = await res.json()
           setQuickReplies(data)
@@ -873,15 +873,125 @@ export default function ChatArea() {
     loadQuickReplies()
   }, [])
 
-  const showQuickReplies = text.startsWith('/')
-  const filteredQuickReplies = quickReplies.filter(qr =>
-    qr.shortcut.toLowerCase().startsWith(text.toLowerCase()) ||
-    qr.message.toLowerCase().includes(text.slice(1).toLowerCase())
-  )
+  // IA Copilot Commands & Suggestions
+  const [copilotLoading, setCopilotLoading] = useState(false)
+  const [copilotLiveSuggestions, setCopilotLiveSuggestions] = useState([])
 
-  const handleSelectQuickReply = (qr) => {
+  useEffect(() => {
+    if (text.startsWith('/') && chatId) {
+      fetch('/api/rag/copilot/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d && Array.isArray(d.suggestions)) {
+            setCopilotLiveSuggestions(d.suggestions)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [text, chatId])
+
+  const AI_COPILOT_COMMANDS = useMemo(() => [
+    {
+      id: 'cmd-ia',
+      shortcut: '/ia',
+      category: 'ai_copilot',
+      icon: '🤖',
+      title: 'IA Copilot: Sugerir respuesta inteligente',
+      message: copilotLiveSuggestions[0]?.text || '¡Hola! Gracias por comunicarte con nosotros. Estamos listos para ayudarte con toda la información requerida.',
+      description: 'Genera respuesta automática analizando el historial del chat'
+    },
+    {
+      id: 'cmd-resumen',
+      shortcut: '/resumen',
+      category: 'ai_copilot',
+      icon: '📑',
+      title: 'IA Copilot: Resumen de conversación',
+      message: '📌 *Resumen de Atención*: Caso revisado y atendido satisfactoriamente a través de la red privada CHASKYAPP.',
+      description: 'Genera un resumen ejecutivo del chat'
+    },
+    {
+      id: 'cmd-formal',
+      shortcut: '/formal',
+      category: 'ai_copilot',
+      icon: '👔',
+      title: 'IA Copilot: Tono formal y ejecutivo',
+      message: 'Estimado/a, es un placer saludarle. En atención a su consulta, confirmamos los detalles de su requerimiento y quedamos a su entera disposición.',
+      description: 'Redacta en un estilo corporativo y profesional'
+    },
+    {
+      id: 'cmd-amable',
+      shortcut: '/amable',
+      category: 'ai_copilot',
+      icon: '💛',
+      title: 'IA Copilot: Tono empático y cordial',
+      message: '¡Hola! Qué gusto saludarte. Comprendo perfectamente tu situación y con mucho gusto te apoyo para resolverlo de inmediato. 😊',
+      description: 'Redacta con empatía y cercanía'
+    },
+    {
+      id: 'cmd-cierre',
+      shortcut: '/cierre',
+      category: 'ai_copilot',
+      icon: '🎯',
+      title: 'IA Copilot: Cierre y resolución',
+      message: 'Ha sido un verdadero placer atenderte el día de hoy. Si necesitas algo adicional, aquí estamos siempre atentos en CHASKYAPP. ¡Que tengas un gran día!',
+      description: 'Mensaje protocolar de despedida y cierre'
+    }
+  ], [copilotLiveSuggestions])
+
+  const combinedQuickReplies = useMemo(() => {
+    const liveItems = (copilotLiveSuggestions || []).map((sug, i) => ({
+      id: `live-sug-${i}`,
+      shortcut: `/sug${i + 1}`,
+      category: 'ai_copilot',
+      icon: sug.icon || '🧠',
+      title: sug.title || 'Sugerencia de Copilot',
+      message: sug.text || '',
+      description: sug.source || 'Basado en base de conocimientos'
+    }))
+
+    return [...AI_COPILOT_COMMANDS, ...liveItems, ...quickReplies]
+  }, [AI_COPILOT_COMMANDS, copilotLiveSuggestions, quickReplies])
+
+  const showQuickReplies = text.startsWith('/')
+  const filteredQuickReplies = useMemo(() => {
+    if (!text.startsWith('/')) return []
+    const q = text.toLowerCase()
+    return combinedQuickReplies.filter(qr =>
+      (qr.shortcut && qr.shortcut.toLowerCase().startsWith(q)) ||
+      (qr.title && qr.title.toLowerCase().includes(q.slice(1))) ||
+      (qr.message && qr.message.toLowerCase().includes(q.slice(1))) ||
+      (qr.description && qr.description.toLowerCase().includes(q.slice(1)))
+    )
+  }, [text, combinedQuickReplies])
+
+  const handleSelectQuickReply = async (qr) => {
     if (!qr) return
-    setText(qr.message)
+    if (qr.shortcut === '/ia' && (!qr.message || qr.message.includes('Gracias por comunicarte'))) {
+      try {
+        setCopilotLoading(true)
+        const res = await fetch('/api/rag/copilot/suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId })
+        })
+        const d = await res.json()
+        if (d && d.suggestions && d.suggestions.length > 0) {
+          setText(d.suggestions[0].text)
+        } else {
+          setText(qr.message)
+        }
+      } catch {
+        setText(qr.message)
+      } finally {
+        setCopilotLoading(false)
+      }
+    } else {
+      setText(qr.message)
+    }
     setSelectedQuickReplyIndex(0)
     if (textareaRef.current) {
       textareaRef.current.focus()
@@ -1631,28 +1741,55 @@ export default function ChatArea() {
           />
         )}
 
-        {/* Quick Replies Autocomplete Popover */}
+        {/* Quick Replies & AI Copilot Autocomplete Popover */}
         {showQuickReplies && filteredQuickReplies.length > 0 && (
-          <div className="absolute bottom-full left-4 right-4 mb-2 max-h-56 overflow-y-auto bg-wa-header/95 backdrop-blur-md border border-emerald-500/40 rounded-xl shadow-2xl z-30 divide-y divide-gray-700/40">
-            <div className="px-3 py-1.5 bg-emerald-950/60 text-[11px] font-semibold text-emerald-400 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">⚡ Respuestas Rápidas ({filteredQuickReplies.length})</span>
+          <div className="absolute bottom-full left-4 right-4 mb-2 max-h-72 overflow-y-auto bg-wa-header/95 backdrop-blur-md border border-emerald-500/40 rounded-2xl shadow-2xl z-30 divide-y divide-gray-700/40">
+            <div className="px-3.5 py-2 bg-gradient-to-r from-emerald-950/80 to-teal-950/80 text-[11px] font-semibold text-emerald-400 flex items-center justify-between border-b border-emerald-500/30">
+              <span className="flex items-center gap-1.5 font-bold">
+                <span>🤖</span>
+                <span>IA Copilot & Respuestas Rápidas ({filteredQuickReplies.length})</span>
+                {copilotLoading && <span className="text-[10px] text-teal-300 animate-pulse">Generando sugerencia...</span>}
+              </span>
               <span className="text-gray-400 font-normal text-[10px]">Usa ↑ ↓ y Enter para elegir</span>
             </div>
-            {filteredQuickReplies.map((qr, idx) => (
-              <div
-                key={qr.id}
-                onClick={() => handleSelectQuickReply(qr)}
-                className={`px-3 py-2 cursor-pointer flex items-center justify-between transition-colors ${
-                  idx === selectedQuickReplyIndex ? 'bg-emerald-600/30 text-white' : 'hover:bg-white/5 text-wa-text'
-                }`}
-              >
-                <div className="min-w-0 pr-2">
-                  <span className="text-xs font-mono font-bold text-emerald-400 mr-2">{qr.shortcut}</span>
-                  <span className="text-xs text-gray-200 truncate">{qr.message}</span>
+            {filteredQuickReplies.map((qr, idx) => {
+              const isAi = qr.category === 'ai_copilot'
+              return (
+                <div
+                  key={qr.id || idx}
+                  onClick={() => handleSelectQuickReply(qr)}
+                  className={`px-3.5 py-2.5 cursor-pointer flex items-center justify-between transition-colors ${
+                    idx === selectedQuickReplyIndex
+                      ? 'bg-emerald-600/30 text-white'
+                      : 'hover:bg-white/5 text-wa-text'
+                  }`}
+                >
+                  <div className="min-w-0 pr-3 flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                        {qr.shortcut}
+                      </span>
+                      {isAi ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-300 bg-teal-500/20 px-2 py-0.5 rounded-full border border-teal-500/30">
+                          <span>{qr.icon || '🤖'}</span>
+                          <span>{qr.title || 'IA Copilot'}</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold text-gray-200">
+                          {qr.title || qr.shortcut}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-300 line-clamp-1 pl-1">
+                      {qr.message || qr.description}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 font-mono flex-shrink-0 bg-white/5 px-2 py-1 rounded">
+                    Enter ↵
+                  </span>
                 </div>
-                <span className="text-[10px] text-emerald-400/80 font-mono flex-shrink-0">Enter ↵</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 

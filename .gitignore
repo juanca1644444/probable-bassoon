@@ -24,6 +24,7 @@ server/*.sqlite3
 # WhatsApp Baileys Sessions
 server/sessions/
 sessions/
+server/backups/*.zip
 
 # Environment & secrets
 .env

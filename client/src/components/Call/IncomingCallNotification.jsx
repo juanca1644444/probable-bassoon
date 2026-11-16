@@ -19,13 +19,16 @@ function useRingTone(active) {
       try {
         ctx.current = ctx.current || new (window.AudioContext || window.webkitAudioContext)()
         const ac = ctx.current
+        if (ac.state === 'suspended') {
+          ac.resume().catch(() => {})
+        }
 
-        // Simple ring pattern: two tones
+        // Simple ring pattern: two loud, clear tones with pleasant harmonic timbre
         const pattern = [
-          { freq: 480, start: 0, dur: 0.4 },
-          { freq: 620, start: 0, dur: 0.4 },
-          { freq: 480, start: 0.5, dur: 0.4 },
-          { freq: 620, start: 0.5, dur: 0.4 },
+          { freq: 520, start: 0, dur: 0.45 },
+          { freq: 660, start: 0, dur: 0.45 },
+          { freq: 520, start: 0.55, dur: 0.45 },
+          { freq: 660, start: 0.55, dur: 0.45 },
         ]
 
         pattern.forEach(({ freq, start, dur }) => {
@@ -33,10 +36,10 @@ function useRingTone(active) {
           const gain = ac.createGain()
           osc.connect(gain)
           gain.connect(ac.destination)
-          osc.type = 'sine'
+          osc.type = 'triangle'
           osc.frequency.value = freq
           gain.gain.setValueAtTime(0, ac.currentTime + start)
-          gain.gain.linearRampToValueAtTime(0.08, ac.currentTime + start + 0.05)
+          gain.gain.linearRampToValueAtTime(0.28, ac.currentTime + start + 0.05)
           gain.gain.linearRampToValueAtTime(0, ac.currentTime + start + dur)
           osc.start(ac.currentTime + start)
           osc.stop(ac.currentTime + start + dur + 0.1)

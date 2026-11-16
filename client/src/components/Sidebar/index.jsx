@@ -30,6 +30,7 @@ import DocumentGenerator from '../Documents/DocumentGenerator'
 import BusinessIntelligenceDashboard from '../Analytics/BusinessIntelligenceDashboard'
 import AiAgentsHub from '../Settings/AiAgentsHub'
 import UserIdentityModal from '../Settings/UserIdentityModal'
+import InstallPwaModal from '../PWA/InstallPwaModal'
 import useTenantStore from '../../store/useTenantStore'
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
@@ -201,6 +202,7 @@ export default function Sidebar() {
 
   const [showMenu, setShowMenu] = useState(false)
   const [showIdentityModal, setShowIdentityModal] = useState(false)
+  const [showInstallPwaModal, setShowInstallPwaModal] = useState(false)
   const [showNewGroup, setShowNewGroup] = useState(false)
   const [showNewChat, setShowNewChat] = useState(false)
   const [showNewBroadcast, setShowNewBroadcast] = useState(false)
@@ -552,6 +554,13 @@ export default function Sidebar() {
                       <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded-full font-mono">
                         {currentUser?.name ? currentUser.name.split(' ')[0] : 'Yo'}
                       </span>
+                    </button>
+                    <button
+                      onClick={() => { setShowMenu(false); setShowInstallPwaModal(true) }}
+                      className="w-full text-left px-4 py-2.5 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-bold border-b border-wa-border/50"
+                    >
+                      <span className="text-base">📲</span>
+                      Instalar App Móvil (PWA)
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setLocked(true) }}
@@ -1172,6 +1181,13 @@ export default function Sidebar() {
       {showIdentityModal && (
         <UserIdentityModal
           onClose={() => setShowIdentityModal(false)}
+        />
+      )}
+
+      {/* CHASKY Mobile PWA Installation Modal */}
+      {showInstallPwaModal && (
+        <InstallPwaModal
+          onClose={() => setShowInstallPwaModal(false)}
         />
       )}
     </div>

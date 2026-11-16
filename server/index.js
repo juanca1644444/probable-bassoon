@@ -227,6 +227,12 @@ const { initWhatsAppGateway, setBroadcast: setWhatsAppBroadcast } = require('./s
 setWhatsAppBroadcast(broadcast);
 app.use('/api/whatsapp', whatsappGatewayRouter);
 
+// Automated Database & Media Backup Engine (Snapshot & Google Drive Ready)
+const backupRouter = require('./routes/backup');
+const { initAutomatedBackupCron } = require('./services/backupService');
+app.use('/api/backup', backupRouter);
+initAutomatedBackupCron(24);
+
 // ─── API Routes ─────────────────────────────────────────────────────────────
 
 // --- Chats ---

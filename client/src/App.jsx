@@ -25,6 +25,17 @@ function AppShell() {
     setChats, setContacts, setTheme, setWs, setConnected
   } = useAppStore();
 
+  // Global PWA BeforeInstallPrompt listener for 1-click home screen install
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      window.__chasky_install_prompt = e;
+      window.dispatchEvent(new CustomEvent('chasky_pwa_ready'));
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
   // Inactivity Auto-Lock timer
   useEffect(() => {
     let timeoutMs = 15 * 60 * 1000; // default 15 minutes
