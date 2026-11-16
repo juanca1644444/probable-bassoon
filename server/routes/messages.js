@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
-const { db } = require('../database');
+const { getDb } = require('../database');
 const { v4: uuidv4 } = require('uuid');
+const { sendTextMessage, getGatewayStatus } = require('../services/whatsappGateway');
 
 // GET /api/messages/:chatId
 router.get('/:chatId', (req, res) => {
   try {
+    const db = getDb();
     const { chatId } = req.params;
     const limit  = parseInt(req.query.limit)  || 50;
     const offset = parseInt(req.query.offset) || 0;
@@ -33,9 +35,10 @@ router.get('/:chatId', (req, res) => {
   }
 });
 
-// POST /api/messages/:chatId
-router.post('/:chatId', (req, res) => {
+// POST /api/messages/:chatId — Outgoing message
+router.post('/:chatId', async (req, res) => {
   try {
+    const db = getDb();
     const { chatId } = req.params;
     const {
       senderId = 'me',
@@ -48,13 +51,34 @@ router.post('/:chatId', (req, res) => {
       filePath = null,
     } = req.body;
 
+    let dispatchStatus = 'sent';
+
+    // ── Direct Outbound WhatsApp Web Gateway Dispatch ──────────────────────
+    if (senderId === 'me' && content && type === 'text') {
+      try {
+        const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(chatId);
+        if (chat && chat.contactId) {
+          const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(chat.contactId);
+          const gw = getGatewayStatus();
+          if (gw.status === 'connected' && contact && contact.phone) {
+            await sendTextMessage(contact.phone, content);
+            dispatchStatus = 'delivered';
+            console.log(`🚀 [WhatsApp Gateway] Mensaje enviado exitosamente a +${contact.phone}`);
+          }
+        }
+      } catch (waErr) {
+        console.warn(`⚠️ [WhatsApp Gateway] No se pudo enviar por WhatsApp directo: ${waErr.message}`);
+        // Continúa la ejecución para que el mensaje quede registrado en SQLite
+      }
+    }
+
     const id        = uuidv4();
     const timestamp = new Date().toISOString();
 
     db.prepare(`
       INSERT INTO messages (id, chatId, senderId, content, type, timestamp, status, replyTo, reactions, fileName, fileSize, filePath)
-      VALUES (?, ?, ?, ?, ?, ?, 'sent', ?, ?, ?, ?, ?)
-    `).run(id, chatId, senderId, content, type, timestamp, replyTo, JSON.stringify(reactions), fileName, fileSize, filePath);
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, chatId, senderId, content, type, timestamp, dispatchStatus, replyTo, JSON.stringify(reactions), fileName, fileSize, filePath);
 
     // Update chat's lastMessage
     db.prepare(`
@@ -75,6 +99,7 @@ router.post('/:chatId', (req, res) => {
 // PATCH /api/messages/:chatId/:messageId — update status or reactions
 router.patch('/:chatId/:messageId', (req, res) => {
   try {
+    const db = getDb();
     const { messageId } = req.params;
     const { status, reactions } = req.body;
 
@@ -96,6 +121,7 @@ router.patch('/:chatId/:messageId', (req, res) => {
 // DELETE /api/messages/:chatId/:messageId
 router.delete('/:chatId/:messageId', (req, res) => {
   try {
+    const db = getDb();
     db.prepare('DELETE FROM messages WHERE id = ? AND chatId = ?').run(req.params.messageId, req.params.chatId);
     res.json({ success: true });
   } catch (err) {

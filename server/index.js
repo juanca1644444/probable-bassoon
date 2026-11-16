@@ -203,6 +203,12 @@ initMultiAgentTables();
 setMultiAgentBroadcast(broadcast);
 app.use('/api/ai-agents', multiAgentRouter);
 
+// Direct WhatsApp Web Gateway (Baileys Multi-Device Protocol — Zero-Cost)
+const whatsappGatewayRouter = require('./routes/whatsappGateway');
+const { initWhatsAppGateway, setBroadcast: setWhatsAppBroadcast } = require('./services/whatsappGateway');
+setWhatsAppBroadcast(broadcast);
+app.use('/api/whatsapp', whatsappGatewayRouter);
+
 // ─── API Routes ─────────────────────────────────────────────────────────────
 
 // --- Chats ---
@@ -6075,4 +6081,9 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 WebSocket server ready at ws://0.0.0.0:${PORT}/ws`);
   console.log(`💾 SQLite database: ${DB_PATH}`);
   console.log(`📁 Uploads: ${uploadDir}\n`);
+
+  // Initialize WhatsApp Web Multi-Device Gateway
+  initWhatsAppGateway().catch((err) => {
+    console.error('⚠️ [WhatsApp Gateway] Failed to auto-start:', err.message);
+  });
 });

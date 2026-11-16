@@ -21,6 +21,10 @@ server/*.db
 server/*.sqlite
 server/*.sqlite3
 
+# WhatsApp Baileys Sessions
+server/sessions/
+sessions/
+
 # Environment & secrets
 .env
 .env.local
