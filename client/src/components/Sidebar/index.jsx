@@ -384,8 +384,14 @@ export default function Sidebar() {
       )
     }
 
-    // Pinned first
-    return list.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
+    // Pinned first, then newest lastMessageTime first
+    return list.sort((a, b) => {
+      const pinDiff = (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
+      if (pinDiff !== 0) return pinDiff;
+      const timeA = typeof a.lastMessageTime === 'number' ? a.lastMessageTime : (new Date(a.lastMessageTime || 0).getTime() || 0);
+      const timeB = typeof b.lastMessageTime === 'number' ? b.lastMessageTime : (new Date(b.lastMessageTime || 0).getTime() || 0);
+      return timeB - timeA;
+    });
   }, [chats, searchQuery, activeFilter, lockedChatIds, selectedChannel, selectedAssignment, selectedStatus])
 
   const handleSelectChat = async (chat) => {

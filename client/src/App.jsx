@@ -146,6 +146,11 @@ function AppShell() {
               : (data.message.type === 'audio' ? '🎤 Nota de voz' : (data.message.content || data.message.fileName || 'Archivo'));
             store.updateChatLastMessage(data.chatId, previewText, data.message.timestamp);
 
+            // Reproducir sonido en TODO mensaje entrante de un contacto (que no sea enviado por mí)
+            if (data.message?.senderId !== 'me') {
+              playNotificationSound();
+            }
+
             const currentActive = store.activeChat;
             if (data.chatId !== currentActive?.id) {
               const chat = store.chats.find(c => c.id === data.chatId) || data.chat;
@@ -165,7 +170,6 @@ function AppShell() {
                   chatId: data.chatId, name: chatName, avatar: chatAvatar,
                   message: msgText.slice(0, 80),
                 });
-                playNotificationSound();
               }
             }
           } else if (data.type === 'chat_updated' || data.type === 'new_chat') {

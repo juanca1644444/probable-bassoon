@@ -4,33 +4,67 @@ import React, { useEffect, useState, useCallback } from 'react'
 import useAppStore from '../../store/useAppStore'
 
 // ── Web Audio API — sonido tipo WhatsApp (Do–Mi–Sol ascendente) ───────────
+let sharedAudioCtx = null;
+
+function getAudioContext() {
+  if (typeof window === 'undefined') return null;
+  try {
+    if (!sharedAudioCtx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) sharedAudioCtx = new AudioCtx();
+    }
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+  } catch {
+    return null;
+  }
+}
+
+// Unlock audio on any early user gesture anywhere in document
+if (typeof window !== 'undefined') {
+  const unlock = () => {
+    getAudioContext();
+  };
+  window.addEventListener('click', unlock, { passive: true, once: false });
+  window.addEventListener('keydown', unlock, { passive: true, once: false });
+  window.addEventListener('touchstart', unlock, { passive: true, once: false });
+}
+
 export function playNotificationSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const ctx = getAudioContext();
+    if (!ctx) return;
 
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
     const notes = [
       { freq: 1046.50, start: 0.00, dur: 0.10 },   // Do6
       { freq: 1318.51, start: 0.10, dur: 0.10 },   // Mi6
-      { freq: 1567.98, start: 0.20, dur: 0.16 },   // Sol6
-    ]
+      { freq: 1567.98, start: 0.20, dur: 0.25 },   // Sol6
+    ];
 
     notes.forEach(({ freq, start, dur }) => {
-      const osc  = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + start)
-      gain.gain.setValueAtTime(0, ctx.currentTime + start)
-      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + start + 0.012)
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + start);
+      gain.gain.setValueAtTime(0.0001, now + start);
+      gain.gain.linearRampToValueAtTime(0.35, now + start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + start + dur);
 
-      osc.start(ctx.currentTime + start)
-      osc.stop(ctx.currentTime  + start + dur + 0.06)
-    })
+      osc.start(now + start);
+      osc.stop(now + start + dur + 0.05);
+    });
   } catch (err) {
-    console.warn('[Toast] Web Audio API no disponible:', err)
+    console.warn('[Toast] Web Audio error:', err);
   }
 }
 

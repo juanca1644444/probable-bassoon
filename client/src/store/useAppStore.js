@@ -15,6 +15,17 @@ const getInitialTheme = () => {
   }
 }
 
+export function sortChats(chats) {
+  if (!Array.isArray(chats)) return [];
+  return [...chats].sort((a, b) => {
+    const pinDiff = (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0);
+    if (pinDiff !== 0) return pinDiff;
+    const timeA = typeof a.lastMessageTime === 'number' ? a.lastMessageTime : (new Date(a.lastMessageTime || 0).getTime() || 0);
+    const timeB = typeof b.lastMessageTime === 'number' ? b.lastMessageTime : (new Date(b.lastMessageTime || 0).getTime() || 0);
+    return timeB - timeA;
+  });
+}
+
 const useAppStore = create((set, get) => ({
   // ── Auth ──────────────────────────────────────────────────────────────────
   isAuthenticated: getInitialAuth(),
@@ -50,7 +61,7 @@ const useAppStore = create((set, get) => ({
   setChatInputDraft: (text) => set({ chatInputDraft: text }),
 
   // ── Chat / Message Actions ────────────────────────────────────────────────
-  setChats:      (chats) => set({ chats }),
+  setChats:      (chats) => set({ chats: sortChats(chats) }),
   setContacts:   (contacts) => set({ contacts }),
   setWs:         (ws) => set({ ws }),
   setConnected:  (v) => set({ isConnected: v }),
@@ -59,18 +70,16 @@ const useAppStore = create((set, get) => ({
 
   addOrUpdateChat: (chat) =>
     set((s) => {
-      if (!chat || !chat.id) return s
-      const index = s.chats.findIndex((c) => c.id === chat.id)
+      if (!chat || !chat.id) return s;
+      const index = s.chats.findIndex((c) => c.id === chat.id);
+      let updated;
       if (index >= 0) {
-        const updated = [...s.chats]
-        updated[index] = { ...updated[index], ...chat }
-        // Re-sort: pinned first, then lastMessageTime desc
-        updated.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
-        return { chats: updated }
+        updated = [...s.chats];
+        updated[index] = { ...updated[index], ...chat };
+      } else {
+        updated = [chat, ...s.chats];
       }
-      const newChats = [chat, ...s.chats]
-      newChats.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
-      return { chats: newChats }
+      return { chats: sortChats(updated) };
     }),
 
   setMessages: (chatId, messages) =>
@@ -83,30 +92,33 @@ const useAppStore = create((set, get) => ({
         ? existing.map((m) => (m.id === message.id ? { ...m, ...message } : m))
         : [...existing, message];
 
+      const rawChats = s.chats.map((c) =>
+        c.id === chatId
+          ? {
+              ...c,
+              lastMessage: message.type === 'sticker' ? '💟 Sticker' : (message.content || message.fileName || 'Archivo'),
+              lastMessageTime: message.timestamp,
+              unreadCount: c.id === s.activeChat?.id ? 0 : (c.unreadCount || 0) + 1,
+            }
+          : c
+      );
+
       return {
         messages: {
           ...s.messages,
           [chatId]: updatedMessages,
         },
-        chats: s.chats.map((c) =>
-          c.id === chatId
-            ? {
-                ...c,
-                lastMessage: message.type === 'sticker' ? '💟 Sticker' : (message.content || message.fileName || 'Archivo'),
-                lastMessageTime: message.timestamp,
-                unreadCount: c.id === s.activeChat?.id ? 0 : (c.unreadCount || 0) + 1,
-              }
-            : c
-        ),
+        chats: sortChats(rawChats),
       };
     }),
 
   updateChatLastMessage: (chatId, content, timestamp) =>
-    set((s) => ({
-      chats: s.chats.map((c) =>
+    set((s) => {
+      const rawChats = s.chats.map((c) =>
         c.id === chatId ? { ...c, lastMessage: content, lastMessageTime: timestamp } : c
-      ),
-    })),
+      );
+      return { chats: sortChats(rawChats) };
+    }),
 
   updateMessageReactions: (messageId, reactions) =>
     set((s) => {
