@@ -45,7 +45,7 @@ function EncryptionModal({ onClose }) {
           <div className="space-y-3 text-sm text-wa-secondary leading-relaxed">
             <p>
               Los mensajes y las llamadas están cifrados de extremo a extremo para que nadie más,{' '}
-              <span className="text-wa-text font-medium">ni siquiera WhatsApp</span>,
+              <span className="text-wa-text font-medium">ni siquiera CHASKYAPP</span>,
               pueda leerlos ni escucharlos.
             </p>
 
@@ -120,7 +120,7 @@ export default function EncryptionBanner() {
         style={{ background: 'rgba(0,168,132,0.07)' }}
       >
         {/* Contenido del banner */}
-        <div className="flex items-center gap-1.5 text-wa-secondary group-hover:text-wa-icon transition-colors">
+        <div className="flex items-center gap-1.5 text-slate-800 dark:text-wa-secondary group-hover:text-wa-icon transition-colors font-medium">
           <span className="text-wa-green">
             <LockIcon />
           </span>

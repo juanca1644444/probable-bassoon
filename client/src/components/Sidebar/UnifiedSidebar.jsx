@@ -57,14 +57,14 @@ export function ChannelBadge({ channel, size = 'sm' }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 font-semibold rounded-full border transition-all ${
+      className={`inline-flex items-center gap-1 font-bold rounded-full border transition-all ${
         isSm ? 'px-1.5 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
       } ${
         ch.id === 'whatsapp'
-          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 dark:bg-emerald-500/15'
+          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 border-emerald-500/40 dark:bg-emerald-500/15'
           : ch.id === 'telegram'
-          ? 'bg-sky-500/10 text-sky-400 border-sky-500/30 dark:bg-sky-500/15'
-          : 'bg-purple-500/10 text-purple-400 border-purple-500/30 dark:bg-purple-500/15'
+          ? 'bg-sky-500/15 text-sky-800 dark:text-sky-400 border-sky-500/40 dark:bg-sky-500/15'
+          : 'bg-purple-500/15 text-purple-800 dark:text-purple-400 border-purple-500/40 dark:bg-purple-500/15'
       }`}
       title={`Canal: ${ch.name}`}
     >
@@ -81,11 +81,11 @@ export function TicketStatusBadge({ status, size = 'sm' }) {
   if (stat === 'open') {
     return (
       <span
-        className={`inline-flex items-center gap-1 font-medium rounded-full ${
+        className={`inline-flex items-center gap-1 font-bold rounded-full ${
           isSm ? 'px-1.5 py-0.2 text-[10px]' : 'px-2.5 py-0.5 text-xs'
-        } bg-green-500/15 text-green-400 border border-green-500/30`}
+        } bg-green-500/15 text-green-800 dark:text-green-400 border border-green-500/40`}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
         <span>Abierto</span>
       </span>
     )
@@ -93,22 +93,22 @@ export function TicketStatusBadge({ status, size = 'sm' }) {
   if (stat === 'pending') {
     return (
       <span
-        className={`inline-flex items-center gap-1 font-medium rounded-full ${
+        className={`inline-flex items-center gap-1 font-bold rounded-full ${
           isSm ? 'px-1.5 py-0.2 text-[10px]' : 'px-2.5 py-0.5 text-xs'
-        } bg-amber-500/15 text-amber-400 border border-amber-500/30`}
+        } bg-amber-500/15 text-amber-900 dark:text-amber-400 border border-amber-500/40`}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
         <span>En Espera</span>
       </span>
     )
   }
   return (
     <span
-      className={`inline-flex items-center gap-1 font-medium rounded-full ${
+      className={`inline-flex items-center gap-1 font-bold rounded-full ${
         isSm ? 'px-1.5 py-0.2 text-[10px]' : 'px-2.5 py-0.5 text-xs'
-      } bg-slate-500/20 text-slate-300 border border-slate-500/30`}
+      } bg-slate-500/15 text-slate-800 dark:text-slate-300 border border-slate-500/40`}
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+      <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
       <span>Resuelto</span>
     </span>
   )
@@ -173,14 +173,14 @@ export default function UnifiedSidebar({
               className={`flex flex-col items-center justify-center py-1 px-1 rounded-lg border transition-all text-[11px] ${
                 isSelected
                   ? 'bg-wa-green/15 border-wa-green text-wa-green font-bold shadow-sm'
-                  : 'bg-black/5 dark:bg-wa-input/60 hover:bg-black/10 dark:hover:bg-wa-input border-transparent text-wa-secondary hover:text-wa-text'
+                  : 'bg-black/5 dark:bg-wa-input/60 hover:bg-black/10 dark:hover:bg-wa-input border-transparent text-slate-700 dark:text-wa-secondary hover:text-wa-text font-medium'
               }`}
             >
               <div className="flex items-center gap-1">
                 {ch.icon}
-                <span className="font-medium truncate">{ch.name.split(' ')[0]}</span>
+                <span className="font-semibold truncate">{ch.name.split(' ')[0]}</span>
               </div>
-              <span className={`text-[10px] ${isSelected ? 'text-wa-green' : 'text-wa-secondary'}`}>
+              <span className={`text-[10px] font-bold ${isSelected ? 'text-wa-green' : 'text-slate-600 dark:text-wa-secondary'}`}>
                 {count}
               </span>
             </button>
@@ -202,15 +202,15 @@ export default function UnifiedSidebar({
         <div
           ref={scrollRef}
           onWheel={handleWheel}
-          className="flex items-center gap-1.5 overflow-x-auto visible-scrollbar pb-1.5 flex-1 scroll-smooth"
+          className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 flex-1 scroll-smooth"
         >
           {/* Assignment filters */}
           <button
             onClick={() => onSelectAssignment(selectedAssignment === 'mine' ? 'all' : 'mine')}
-            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1.5 ${
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors flex items-center gap-1.5 ${
               selectedAssignment === 'mine'
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-slate-700 dark:text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
             <span>👤 Mis Asignados</span>
@@ -219,10 +219,10 @@ export default function UnifiedSidebar({
 
           <button
             onClick={() => onSelectAssignment(selectedAssignment === 'unassigned' ? 'all' : 'unassigned')}
-            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1.5 ${
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors flex items-center gap-1.5 ${
               selectedAssignment === 'unassigned'
                 ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-slate-700 dark:text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
             <span>❓ Sin Asignar</span>
@@ -232,37 +232,37 @@ export default function UnifiedSidebar({
           {/* Status filters */}
           <button
             onClick={() => onSelectStatus(selectedStatus === 'open' ? 'all' : 'open')}
-            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1 ${
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors flex items-center gap-1 ${
               selectedStatus === 'open'
                 ? 'bg-green-600 text-white border-green-600 shadow-sm'
-                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-slate-700 dark:text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
             <span>Abiertos</span>
           </button>
 
           <button
             onClick={() => onSelectStatus(selectedStatus === 'pending' ? 'all' : 'pending')}
-            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1 ${
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors flex items-center gap-1 ${
               selectedStatus === 'pending'
                 ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-slate-700 dark:text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             <span>En Espera</span>
           </button>
 
           <button
             onClick={() => onSelectStatus(selectedStatus === 'resolved' ? 'all' : 'resolved')}
-            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1 ${
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors flex items-center gap-1 ${
               selectedStatus === 'resolved'
                 ? 'bg-slate-600 text-white border-slate-600 shadow-sm'
-                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-slate-700 dark:text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
             <span>Resueltos</span>
           </button>
         </div>

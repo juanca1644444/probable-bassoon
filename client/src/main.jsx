@@ -15,22 +15,17 @@ if (typeof window !== 'undefined') {
 
   window.fetch = function (resource, init) {
     if (typeof resource === 'string') {
+      // 1. Normalize hardcoded dev host addresses to relative routes
+      if (resource.startsWith('http://localhost:3001') || resource.startsWith('http://127.0.0.1:3001')) {
+        resource = resource.replace(/^https?:\/\/(localhost|127\.0\.0\.1):3001/, '');
+      }
+
+      // 2. Route to production backend on Render when deployed on Vercel
       if (envBackend && (resource.startsWith('/api') || resource.startsWith('/uploads'))) {
-        // En despliegue Serverless separado (ej: Frontend en Vercel -> Backend en Render)
         resource = `${envBackend.replace(/\/$/, '')}${resource}`;
       } else if (isDevPort) {
-        // En entorno de desarrollo LAN o local, apuntar al backend en :3001 usando el hostname dinámico
-        if (resource.includes('localhost:3001')) {
-          resource = resource.replace('localhost:3001', `${currentHost}:3001`);
-        } else if (resource.includes('127.0.0.1:3001')) {
-          resource = resource.replace('127.0.0.1:3001', `${currentHost}:3001`);
-        } else if (resource.startsWith('/api') || resource.startsWith('/uploads')) {
+        if (resource.startsWith('/api') || resource.startsWith('/uploads')) {
           resource = `http://${currentHost}:3001${resource}`;
-        }
-      } else {
-        // En producción / Nginx / Túnel WAN, transformar rutas absolutas de dev a rutas relativas
-        if (resource.startsWith('http://localhost:3001') || resource.startsWith('http://127.0.0.1:3001')) {
-          resource = resource.replace(/^https?:\/\/(localhost|127\.0\.0\.1):3001/, '');
         }
       }
     }

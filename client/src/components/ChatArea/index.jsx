@@ -546,24 +546,24 @@ function DateSeparator({ date }) {
 function InternalNoteCard({ note, onDelete }) {
   return (
     <div className="flex justify-center my-3 px-4 animate-fade-in">
-      <div className="w-full max-w-xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/40 dark:border-amber-500/50 rounded-2xl p-3.5 shadow-md backdrop-blur-sm transition-all hover:border-amber-500/70">
-        <div className="flex items-center justify-between pb-2 border-b border-amber-500/20 mb-2">
+      <div className="w-full max-w-xl bg-amber-500/15 dark:bg-amber-950/40 border border-amber-500/40 dark:border-amber-500/50 rounded-2xl p-3.5 shadow-md backdrop-blur-sm transition-all hover:border-amber-500/70">
+        <div className="flex items-center justify-between pb-2 border-b border-amber-500/30 mb-2">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-500/40 uppercase tracking-wider">
               <span>🔒 NOTA INTERNA</span>
             </span>
-            <span className="text-xs font-semibold text-amber-200">
+            <span className="text-xs font-bold text-amber-950 dark:text-amber-200">
               👤 {note.authorName || 'Agente'}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-amber-300/70">
+            <span className="text-[11px] text-amber-900/80 dark:text-amber-300/70 font-medium">
               {formatTime(note.createdAt)}
             </span>
             {onDelete && (
               <button
                 onClick={() => onDelete(note.id)}
-                className="text-amber-400/60 hover:text-red-400 p-1 rounded hover:bg-black/20 transition-colors"
+                className="text-amber-900/70 dark:text-amber-400/60 hover:text-red-500 p-1 rounded hover:bg-black/10 dark:hover:bg-black/20 transition-colors"
                 title="Eliminar nota interna"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -574,16 +574,16 @@ function InternalNoteCard({ note, onDelete }) {
           </div>
         </div>
 
-        <div className="text-sm text-amber-100/90 whitespace-pre-wrap leading-relaxed px-0.5 font-normal">
+        <div className="text-sm text-amber-950 dark:text-amber-100/90 whitespace-pre-wrap leading-relaxed px-0.5 font-medium">
           {note.content}
         </div>
 
-        <div className="flex items-center justify-between pt-2 mt-2 border-t border-amber-500/15 text-[10px] text-amber-300/60">
+        <div className="flex items-center justify-between pt-2 mt-2 border-t border-amber-500/20 text-[10px] text-amber-900/80 dark:text-amber-300/60 font-medium">
           <span className="flex items-center gap-1">
             <span>🛡️</span>
             <span>Visible únicamente para el equipo interno · NUNCA se envía al cliente</span>
           </span>
-          <span className="font-mono text-[9px] text-amber-400/50">CRM CONFIDENCIAL</span>
+          <span className="font-mono text-[9px] text-amber-950/70 dark:text-amber-400/50 font-bold">CRM CONFIDENCIAL</span>
         </div>
       </div>
     </div>
@@ -1486,14 +1486,14 @@ export default function ChatArea() {
             ? 'bg-amber-950/60 border-amber-500/40 text-amber-200'
             : 'bg-wa-header/70 border-white/5'
         }`}>
-          <div className="flex items-center gap-1.5 overflow-x-auto visible-scrollbar flex-1 mr-2 pb-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 mr-2 pb-0.5">
             <button
               type="button"
               onClick={() => setIsInternalNoteMode(false)}
               className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 transition-all ${
                 !isInternalNoteMode
-                  ? 'bg-wa-green text-white shadow-sm'
-                  : 'text-wa-secondary hover:text-wa-text hover:bg-white/5'
+                  ? 'bg-wa-green text-white shadow-sm font-bold'
+                  : 'text-slate-700 dark:text-wa-secondary hover:text-wa-text hover:bg-black/5 dark:hover:bg-white/5 font-medium'
               }`}
             >
               <span>💬 Mensaje</span>
@@ -1504,13 +1504,13 @@ export default function ChatArea() {
               className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 transition-all ${
                 isInternalNoteMode
                   ? 'bg-amber-500 text-black font-bold shadow-md ring-2 ring-amber-400/50'
-                  : 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                  : 'text-amber-800 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 hover:bg-amber-500/15 font-bold'
               }`}
             >
               <span>🔒 Nota Interna</span>
               {internalNotes.length > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isInternalNoteMode ? 'bg-black/25 text-black' : 'bg-amber-500/20 text-amber-300'
+                  isInternalNoteMode ? 'bg-black/25 text-black' : 'bg-amber-500/20 text-amber-900 dark:text-amber-300'
                 }`}>
                   {internalNotes.length}
                 </span>
@@ -1518,13 +1518,13 @@ export default function ChatArea() {
             </button>
 
             {/* Separator */}
-            <div className="h-4 w-px bg-white/10 mx-1 flex-shrink-0" />
+            <div className="h-4 w-px bg-wa-border mx-1 flex-shrink-0" />
 
             {/* Quick Tools Pills for Business */}
             <button
               type="button"
               onClick={() => setShowPaymentModal(true)}
-              className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 flex-shrink-0 transition-colors shadow-sm"
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-800 dark:text-emerald-400 border border-emerald-500/40 flex items-center gap-1 flex-shrink-0 transition-colors shadow-sm"
               title="Cobrar con Yape, Plin o Tarjetas"
             >
               <span>💳</span>
@@ -1534,7 +1534,7 @@ export default function ChatArea() {
             <button
               type="button"
               onClick={() => setShowCartModal(true)}
-              className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 border border-indigo-500/30 flex items-center gap-1 flex-shrink-0 transition-colors shadow-sm"
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-800 dark:text-indigo-400 border border-indigo-500/40 flex items-center gap-1 flex-shrink-0 transition-colors shadow-sm"
               title="Crear Pedido / Carrito de Compras (Meta WhatsApp Business)"
             >
               <span>🛒</span>
@@ -1544,7 +1544,7 @@ export default function ChatArea() {
             <button
               type="button"
               onClick={() => setShowScheduleModal(true)}
-              className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 flex items-center gap-1 flex-shrink-0 transition-colors shadow-sm"
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-400 border border-amber-500/40 flex items-center gap-1 flex-shrink-0 transition-colors shadow-sm"
               title="Programar mensaje automático"
             >
               <span>⏰</span>
@@ -1554,7 +1554,7 @@ export default function ChatArea() {
             <button
               type="button"
               onClick={() => setShowCatalog(true)}
-              className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 flex items-center gap-1 flex-shrink-0 transition-colors shadow-sm"
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/15 hover:bg-sky-500/25 text-sky-800 dark:text-sky-400 border border-sky-500/40 flex items-center gap-1 flex-shrink-0 transition-colors shadow-sm"
               title="Catálogo de productos"
             >
               <span>🛍️</span>
@@ -1569,10 +1569,10 @@ export default function ChatArea() {
                 setShowEmoji(false)
                 setShowAttachMenu(false)
               }}
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border flex items-center gap-1 flex-shrink-0 transition-all shadow-sm ${
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border flex items-center gap-1 flex-shrink-0 transition-all shadow-sm ${
                 showStickerPicker
-                  ? 'bg-rose-500/30 text-rose-300 border-rose-500/60 ring-2 ring-rose-500/40'
-                  : 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border-rose-500/30'
+                  ? 'bg-rose-500/30 text-rose-900 dark:text-rose-300 border-rose-500/60 ring-2 ring-rose-500/40'
+                  : 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-800 dark:text-rose-400 border-rose-500/40'
               }`}
               title="Stickers y creador"
             >
@@ -1582,11 +1582,11 @@ export default function ChatArea() {
           </div>
 
           {isInternalNoteMode ? (
-            <span className="text-[11px] text-amber-300 font-medium hidden lg:inline flex-shrink-0">
+            <span className="text-[11px] text-amber-900 dark:text-amber-300 font-bold hidden lg:inline flex-shrink-0">
               🛡️ Modo Privado
             </span>
           ) : (
-            <span className="text-[10px] text-wa-secondary hidden lg:inline flex-shrink-0">
+            <span className="text-[10px] text-slate-600 dark:text-wa-secondary font-semibold hidden lg:inline flex-shrink-0">
               Enter ↵ para enviar
             </span>
           )}

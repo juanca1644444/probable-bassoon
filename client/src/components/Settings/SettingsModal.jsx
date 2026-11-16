@@ -291,22 +291,22 @@ export default function SettingsModal({ initialTab = 'profile', onClose, onLockS
 
       {/* Modal Dialog */}
       <div
-        className="relative bg-wa-header rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col md:flex-row h-[550px] overflow-hidden border border-white/10 animate-fade-in-up"
+        className="relative bg-wa-header rounded-2xl shadow-2xl w-full max-w-4xl flex flex-row h-[640px] max-h-[90vh] overflow-hidden border border-wa-border animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left Navigation Bar */}
-        <div className="w-full md:w-56 bg-wa-sidebar border-b md:border-b-0 md:border-r border-white/5 flex flex-col p-3">
-          <div className="flex items-center justify-between px-3 py-2 mb-2">
+        <div className="w-56 md:w-64 shrink-0 bg-wa-sidebar border-r border-wa-border flex flex-col h-full overflow-hidden p-3">
+          <div className="flex items-center justify-between px-3 py-2 mb-2 shrink-0">
             <span className="text-wa-text font-bold text-base">Ajustes</span>
             <button
               onClick={onClose}
-              className="p-1 rounded-full text-wa-icon hover:bg-white/10 transition-colors md:hidden"
+              className="p-1 rounded-full text-wa-icon hover:bg-black/5 dark:hover:bg-white/10 transition-colors md:hidden"
             >
               ✕
             </button>
           </div>
 
-          <nav className="flex-1 space-y-1">
+          <nav className="flex-1 overflow-y-auto scrollbar-thin space-y-1 pr-1">
             {[
               { id: 'profile', label: 'Perfil', icon: '👤' },
               { id: 'subscription', label: 'Suscripción y Licencia', icon: '💳' },
@@ -329,31 +329,31 @@ export default function SettingsModal({ initialTab = 'profile', onClose, onLockS
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors text-left ${
                   activeTab === tab.id
-                    ? 'bg-wa-green/20 text-wa-green font-semibold'
-                    : 'text-wa-secondary hover:text-wa-text hover:bg-white/5'
+                    ? 'bg-wa-green/15 text-wa-green font-bold'
+                    : 'text-slate-700 dark:text-wa-secondary hover:text-wa-text hover:bg-black/5 dark:hover:bg-white/5 font-medium'
                 }`}
               >
                 <span className="text-lg">{tab.icon}</span>
-                <span>{tab.label}</span>
+                <span className="truncate">{tab.label}</span>
               </button>
             ))}
           </nav>
 
           <button
             onClick={onClose}
-            className="hidden md:flex items-center justify-center gap-2 py-2 mt-auto text-xs text-wa-secondary hover:text-wa-text transition-colors"
+            className="flex items-center justify-center gap-2 py-2.5 mt-auto text-xs text-wa-secondary hover:text-wa-text transition-colors shrink-0 border-t border-wa-border/50 pt-2"
           >
             Presiona ESC para cerrar
           </button>
         </div>
 
         {/* Right Content Panel */}
-        <div className="flex-1 bg-wa-dark p-6 overflow-y-auto scrollbar-thin flex flex-col relative">
+        <div className="flex-1 bg-wa-dark p-6 overflow-y-auto scrollbar-thin flex flex-col relative h-full">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-wa-icon hover:text-wa-text hover:bg-white/10 transition-colors hidden md:block"
+            className="absolute top-4 right-4 p-1.5 rounded-full text-wa-icon hover:text-wa-text hover:bg-black/5 dark:hover:bg-white/10 transition-colors z-20"
             title="Cerrar"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

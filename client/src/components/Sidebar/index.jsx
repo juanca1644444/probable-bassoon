@@ -93,17 +93,17 @@ function ChatItem({ chat, isActive, onClick, onLockChat, onAssignLabels, sentime
             </span>
             <ChannelBadge channel={chat.channel} size="sm" />
             {sentiment?.urgent ? (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse flex-shrink-0" title={`Urgente / Crítico: Tono del cliente ${sentiment.sentiment}`}>
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/40 animate-pulse flex-shrink-0" title={`Urgente / Crítico: Tono del cliente ${sentiment.sentiment}`}>
                 <span>⚠️</span>
                 <span>Urgente</span>
               </span>
             ) : sentiment?.sentiment === 'positive' ? (
-              <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-full text-[9px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex-shrink-0" title="Sentimiento Positivo">
+              <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 flex-shrink-0" title="Sentimiento Positivo">
                 <span>🟢</span>
               </span>
             ) : null}
           </div>
-          <span className={`text-[11px] flex-shrink-0 ml-1.5 ${hasUnread ? 'text-wa-green font-bold' : 'text-wa-secondary'}`}>
+          <span className={`text-[11px] flex-shrink-0 ml-1.5 ${hasUnread ? 'text-wa-green font-bold' : 'text-slate-500 dark:text-wa-secondary font-medium'}`}>
             {formatChatTime(chat.lastMessageTime)}
           </span>
         </div>
@@ -124,18 +124,18 @@ function ChatItem({ chat, isActive, onClick, onLockChat, onAssignLabels, sentime
                   />
                 ))}
                 {labels.length > 3 && (
-                  <span className="text-[9px] text-wa-secondary font-bold">+{labels.length - 3}</span>
+                  <span className="text-[9px] text-slate-600 dark:text-wa-secondary font-bold">+{labels.length - 3}</span>
                 )}
               </div>
             )}
 
             {chat.assignedAgentName && (
-              <span className="text-[10px] text-wa-secondary bg-white/5 border border-white/5 px-1 py-0.2 rounded truncate max-w-[95px] flex items-center gap-0.5" title={`Asignado a: ${chat.assignedAgentName}`}>
+              <span className="text-[10px] text-slate-700 dark:text-wa-secondary bg-black/5 dark:bg-white/5 border border-wa-border px-1 py-0.2 rounded truncate max-w-[95px] flex items-center gap-0.5 font-medium" title={`Asignado a: ${chat.assignedAgentName}`}>
                 <span>👤</span>
                 <span className="truncate">{chat.assignedAgentName.split(' ')[0]}</span>
               </span>
             )}
-            <span className="text-wa-secondary text-xs truncate">
+            <span className="text-slate-600 dark:text-wa-secondary text-xs truncate font-medium">
               {chat.lastMessage && (chat.lastMessage.startsWith('data:image') || (chat.lastMessage.startsWith('http') && chat.lastMessage.includes('dicebear')))
                 ? '💟 Sticker'
                 : (chat.lastMessage || 'Sin mensajes')}
@@ -144,7 +144,7 @@ function ChatItem({ chat, isActive, onClick, onLockChat, onAssignLabels, sentime
 
           <div className="flex items-center gap-1 ml-2 flex-shrink-0">
             {hasUnread && (
-              <span className={`min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center text-xs font-semibold text-wa-dark ${chat.isMuted ? 'bg-wa-secondary' : 'bg-wa-green'}`}>
+              <span className={`min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center text-xs font-bold text-white ${chat.isMuted ? 'bg-slate-500' : 'bg-wa-green'}`}>
                 {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
               </span>
             )}
@@ -220,7 +220,7 @@ export default function Sidebar() {
 
   const fetchSentiments = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/sentiments')
+      const res = await fetch('/api/sentiments')
       if (res.ok) {
         const data = await res.json()
         setSentiments(data || {})
@@ -257,7 +257,7 @@ export default function Sidebar() {
 
   const fetchChatLabels = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/chat-labels')
+      const res = await fetch('/api/chat-labels')
       if (res.ok) {
         const data = await res.json()
         setChatLabels(data || {})
@@ -288,7 +288,7 @@ export default function Sidebar() {
 
   const fetchLockedChats = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/locked-chats')
+      const res = await fetch('/api/locked-chats')
       if (res.ok) {
         const ids = await res.json()
         setLockedChatIds(ids)
@@ -304,7 +304,7 @@ export default function Sidebar() {
 
   const handleLockChat = async (chatId) => {
     try {
-      await fetch('http://localhost:3001/api/locked-chats', {
+      await fetch('/api/locked-chats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chatId })
@@ -317,7 +317,7 @@ export default function Sidebar() {
 
   const handleUnlockChat = async (chatId) => {
     try {
-      await fetch(`http://localhost:3001/api/locked-chats/${chatId}`, { method: 'DELETE' })
+      await fetch(`/api/locked-chats/${chatId}`, { method: 'DELETE' })
       fetchLockedChats()
     } catch (e) {
       console.error('Error unlocking chat:', e)
@@ -524,24 +524,24 @@ export default function Sidebar() {
                   </svg>
                 </button>
                 {showMenu && (
-                  <div className="absolute right-0 top-10 w-52 bg-wa-header rounded-xl shadow-2xl z-30 py-1.5 border border-gray-700/50 animate-scale-in">
+                  <div className="absolute right-0 top-10 w-64 max-h-[82vh] overflow-y-auto scrollbar-thin bg-wa-header rounded-xl shadow-2xl z-40 py-1.5 border border-wa-border animate-scale-in">
                     <button
                       onClick={() => { setShowMenu(false); setLocked(true) }}
-                      className="w-full text-left px-4 py-2.5 text-amber-400 hover:text-amber-300 text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
+                      className="w-full text-left px-4 py-2.5 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
                     >
                       <span className="text-base">🔒</span>
                       Bloquear Pantalla
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setActiveFilter('status') }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">⭕</span>
                       Estados
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowNewChat(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <svg className="w-4 h-4 text-wa-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
@@ -550,14 +550,14 @@ export default function Sidebar() {
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowDirectPhone(true) }}
-                      className="w-full text-left px-4 py-2.5 text-emerald-400 hover:text-emerald-300 text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
+                      className="w-full text-left px-4 py-2.5 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
                     >
                       <span className="text-base">📞</span>
                       Escribir a un número
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowNewGroup(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <svg className="w-4 h-4 text-wa-green" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
@@ -566,158 +566,158 @@ export default function Sidebar() {
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowNewBroadcast(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">📢</span>
                       Nueva difusión
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowStarred(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">⭐</span>
                       Mensajes destacados
                     </button>
                     <button
                       onClick={() => handleOpenSettings('profile')}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">👤</span>
                       Perfil
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowAnalytics(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">📊</span>
                       Analíticas y reportes
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowBiDashboard(true) }}
-                      className="w-full text-left px-4 py-2.5 text-emerald-400 hover:text-emerald-300 text-sm hover:bg-white/10 transition-colors flex items-center justify-between font-semibold"
+                      className="w-full text-left px-4 py-2.5 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center justify-between font-semibold"
                     >
                       <span className="flex items-center gap-2.5">
                         <span className="text-base">📈</span>
                         Business Intelligence & Funnel BI
                       </span>
-                      <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-black border border-emerald-500/30">
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 px-1.5 py-0.5 rounded font-black border border-emerald-500/30">
                         PRO
                       </span>
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowAiAgentsHub(true) }}
-                      className="w-full text-left px-4 py-2.5 text-cyan-400 hover:text-cyan-300 text-sm hover:bg-white/10 transition-colors flex items-center justify-between font-semibold"
+                      className="w-full text-left px-4 py-2.5 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center justify-between font-semibold"
                     >
                       <span className="flex items-center gap-2.5">
                         <span className="text-base">🤖</span>
                         Especialistas IA & Enrutador
                       </span>
-                      <span className="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-black border border-cyan-500/30">
+                      <span className="text-[9px] bg-cyan-500/20 text-cyan-800 dark:text-cyan-400 px-1.5 py-0.5 rounded font-black border border-cyan-500/30">
                         MULTI-IA
                       </span>
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowKanban(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">📋</span>
                       CRM Pipeline Kanban
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowCampaigns(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">📢</span>
                       Campañas Masivas
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowBulkSender(true) }}
-                      className="w-full text-left px-4 py-2.5 text-emerald-400 hover:text-emerald-300 text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
+                      className="w-full text-left px-4 py-2.5 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
                     >
                       <span className="text-base">🚀</span>
                       Envío Masivo (Excel / Pegar)
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowFlowBuilder(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">🤖</span>
                       Constructor de Bots (Flows)
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowLabelsModal(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">🏷️</span>
                       Etiquetas (WhatsApp Business)
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowBusinessProfile(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">🏢</span>
                       Perfil de Empresa Oficial (Meta)
                     </button>
                     <button
                       onClick={() => handleOpenSettings('devices')}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">🔗</span>
                       Dispositivos vinculados
                     </button>
                     <button
                       onClick={() => handleOpenSettings('developer')}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">💻</span>
                       Centro Desarrolladores (API & Webhooks)
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowTenantManager(true) }}
-                      className="w-full text-left px-4 py-2.5 text-emerald-400 hover:text-emerald-300 text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5 font-bold"
+                      className="w-full text-left px-4 py-2.5 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-bold"
                     >
                       <span className="text-base">🏢</span>
                       Gestión Multi-Tenant & SaaS
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowSubscription(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">💳</span>
                       Suscripción y Licenciamiento
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowChannelsHub(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">📡</span>
                       Canales Oficiales (Meta & Telegram)
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowIvrBuilder(true) }}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">📞</span>
                       Centralita IVR & Agente de Voz IA
                     </button>
                     <button
                       onClick={() => { setShowMenu(false); setShowDocGenerator(true) }}
-                      className="w-full text-left px-4 py-2.5 text-emerald-400 hover:text-emerald-300 text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
+                      className="w-full text-left px-4 py-2.5 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
                     >
                       <span className="text-base">📄</span>
                       Generador de Contratos & Documentos IA
                     </button>
                     <button
                       onClick={() => handleOpenSettings('notifications')}
-                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-white/10 transition-colors flex items-center gap-2.5"
+                      className="w-full text-left px-4 py-2.5 text-wa-text text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-medium"
                     >
                       <span className="text-base">⚙️</span>
                       Configuración
                     </button>
-                    <div className="border-t border-white/10 my-1" />
+                    <div className="border-t border-wa-border my-1" />
                     <button
                       onClick={() => { setShowMenu(false); logout() }}
-                      className="w-full text-left px-4 py-2.5 text-red-400 hover:text-red-300 text-sm hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                      className="w-full text-left px-4 py-2.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm hover:bg-red-500/10 transition-colors flex items-center gap-2 font-semibold"
                     >
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
@@ -758,7 +758,7 @@ export default function Sidebar() {
           {activeTenant && (
             <div
               onClick={() => setShowTenantManager(true)}
-              className="mx-3 my-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between cursor-pointer transition shadow-sm group"
+              className="mx-3 my-1.5 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-wa-border flex items-center justify-between cursor-pointer transition shadow-sm group"
               title="Organización Activa — Haz clic para gestionar inquilinos y planes"
             >
               <div className="flex items-center gap-2 min-w-0">
@@ -774,19 +774,19 @@ export default function Sidebar() {
                 )}
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-white truncate block group-hover:text-emerald-400 transition-colors">
+                    <span className="text-xs font-bold text-wa-text truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                       {tenantSettings?.appName || activeTenant.name}
                     </span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-white/10 text-emerald-300 font-mono">
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-emerald-500/15 dark:bg-white/10 text-emerald-800 dark:text-emerald-300 font-mono border border-emerald-500/20">
                       {activeTenant.planName ? activeTenant.planName.replace('Plan ', '') : 'Pro'}
                     </span>
                   </div>
-                  <span className="text-[9px] text-wa-secondary block truncate">
+                  <span className="text-[9px] text-slate-600 dark:text-wa-secondary font-medium block truncate">
                     {activeTenant.status === 'suspended' ? '🔴 Suspendido' : '🟢 Multi-Tenant Activo'} • {activeTenant.slug}
                   </span>
                 </div>
               </div>
-              <span className="text-[10px] text-wa-secondary hover:text-white px-1 py-0.5 rounded bg-white/5 font-mono">
+              <span className="text-[10px] text-slate-700 dark:text-wa-secondary hover:text-wa-text px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 font-mono border border-wa-border/50">
                 Tenants ▾
               </span>
             </div>
@@ -865,16 +865,16 @@ export default function Sidebar() {
                 <div
                   ref={tabsScrollRef}
                   onWheel={handleTabsWheel}
-                  className="flex gap-1 overflow-x-auto visible-scrollbar pb-1.5 flex-1 scroll-smooth"
+                  className="flex gap-1 overflow-x-auto no-scrollbar pb-1.5 flex-1 scroll-smooth"
                 >
                   {FILTERS.map((f) => (
                     <button
                       key={f.key}
                       onClick={() => setActiveFilter(f.key)}
-                      className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-colors ${
                         activeFilter === f.key
-                          ? 'bg-wa-green text-white shadow-sm font-semibold'
-                          : 'bg-black/5 dark:bg-wa-input text-wa-secondary hover:text-wa-text'
+                          ? 'bg-wa-green text-white shadow-sm'
+                          : 'bg-black/5 dark:bg-wa-input text-slate-700 dark:text-wa-secondary hover:text-wa-text'
                       }`}
                     >
                       {f.label}
