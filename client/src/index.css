@@ -2,20 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme variables ──────────────────────────────────────── */
+:root {
+  /* WhatsApp Web Light Mode */
+  --wa-green: #00a884;
+  --wa-green-rgb: 0, 168, 132;
+  --wa-green-hover: #008f6f;
+  --wa-green-hover-rgb: 0, 143, 111;
+  --wa-dark: #f0f2f5;
+  --wa-dark-rgb: 240, 242, 245;
+  --wa-sidebar: #ffffff;
+  --wa-sidebar-rgb: 255, 255, 255;
+  --wa-chat: #efeae2;
+  --wa-chat-rgb: 239, 234, 226;
+  --wa-bubble: #d9fdd3;
+  --wa-bubble-rgb: 217, 253, 211;
+  --wa-bubble-in: #ffffff;
+  --wa-bubble-in-rgb: 255, 255, 255;
+  --wa-header: #f0f2f5;
+  --wa-header-rgb: 240, 242, 245;
+  --wa-input: #ffffff;
+  --wa-input-rgb: 255, 255, 255;
+  --wa-icon: #54656f;
+  --wa-icon-rgb: 84, 101, 111;
+  --wa-text: #111b21;
+  --wa-text-rgb: 17, 27, 33;
+  --wa-secondary: #667781;
+  --wa-secondary-rgb: 102, 119, 129;
+  --wa-border: #e9edef;
+  --wa-border-rgb: 233, 237, 239;
+  --wa-hover: #f5f6f6;
+  --wa-hover-rgb: 245, 246, 246;
+
+  color-scheme: light;
+}
+
+html.dark {
+  /* WhatsApp Web Dark Mode */
+  --wa-green: #00a884;
+  --wa-green-rgb: 0, 168, 132;
+  --wa-green-hover: #00c69d;
+  --wa-green-hover-rgb: 0, 198, 157;
+  --wa-dark: #111b21;
+  --wa-dark-rgb: 17, 27, 33;
+  --wa-sidebar: #111b21;
+  --wa-sidebar-rgb: 17, 27, 33;
+  --wa-chat: #0b141a;
+  --wa-chat-rgb: 11, 20, 26;
+  --wa-bubble: #005c4b;
+  --wa-bubble-rgb: 0, 92, 75;
+  --wa-bubble-in: #202c33;
+  --wa-bubble-in-rgb: 32, 44, 51;
+  --wa-header: #202c33;
+  --wa-header-rgb: 32, 44, 51;
+  --wa-input: #2a3942;
+  --wa-input-rgb: 42, 57, 66;
+  --wa-icon: #aebac1;
+  --wa-icon-rgb: 174, 186, 193;
+  --wa-text: #e9edef;
+  --wa-text-rgb: 233, 237, 239;
+  --wa-secondary: #8696a0;
+  --wa-secondary-rgb: 134, 150, 160;
+  --wa-border: #222d34;
+  --wa-border-rgb: 34, 45, 52;
+  --wa-hover: #202c33;
+  --wa-hover-rgb: 32, 44, 51;
+
+  color-scheme: dark;
+}
+
 /* ── Custom scrollbar ─────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #374151; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.35); }
+
+html.dark ::-webkit-scrollbar-thumb { background: #374151; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
 
 /* ── Global reset ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; width: 100%; overflow: hidden; }
-body { font-family: 'Inter', system-ui, sans-serif; background: #111b21; color: #e9edef; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--wa-dark);
+  color: var(--wa-text);
+}
 
 /* ── Smooth transitions ───────────────────────────────────── */
-* { transition-property: background-color, border-color, color, opacity;
-    transition-duration: 150ms; transition-timing-function: ease; }
+* {
+  transition-property: background-color, border-color, color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
 
 /* ── Prose overrides for dark mode ───────────────────────── */
 .prose { max-width: none; }
@@ -54,7 +133,12 @@ textarea { resize: none; }
 
 /* ── Chat background pattern ─────────────────────────────── */
 .chat-bg {
-  background-color: #0b141a;
+  background-color: var(--wa-chat);
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.035'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+html.dark .chat-bg {
+  background-color: var(--wa-chat);
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
@@ -68,16 +152,22 @@ textarea { resize: none; }
 /* ── Scrollbar thin ───────────────────────────────────────── */
 .scrollbar-thin::-webkit-scrollbar { width: 4px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #2a3942; border-radius: 99px; }
-.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #374151; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 99px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
+
+html.dark .scrollbar-thin::-webkit-scrollbar-thumb { background: #2a3942; }
+html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #374151; }
 
 /* ── Visible horizontal scrollbar ─────────────────────────── */
 .visible-scrollbar::-webkit-scrollbar {
   height: 6px;
 }
 .visible-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 99px;
+}
+html.dark .visible-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
 }
 .visible-scrollbar::-webkit-scrollbar-thumb {
   background: #00a884;
@@ -88,6 +178,9 @@ textarea { resize: none; }
 }
 .visible-scrollbar {
   scrollbar-width: thin;
+  scrollbar-color: #00a884 rgba(0, 0, 0, 0.05);
+}
+html.dark .visible-scrollbar {
   scrollbar-color: #00a884 rgba(255, 255, 255, 0.08);
 }
 
@@ -111,13 +204,16 @@ textarea { resize: none; }
   position: fixed;
   z-index: 9000;
   min-width: 180px;
-  background: #202c33;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--wa-header);
+  border: 1px solid var(--wa-border);
   border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   overflow: hidden;
   animation: scaleIn 0.12s ease-out forwards;
   transform-origin: top left;
+}
+html.dark .context-menu {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
 .context-menu button {
   display: flex;
@@ -126,14 +222,15 @@ textarea { resize: none; }
   width: 100%;
   padding: 10px 16px;
   font-size: 13px;
-  color: #e9edef;
+  color: var(--wa-text);
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
   transition: background 0.1s;
 }
-.context-menu button:hover { background: rgba(255,255,255,0.07); }
+.context-menu button:hover { background: rgba(0, 0, 0, 0.05); }
+html.dark .context-menu button:hover { background: rgba(255, 255, 255, 0.07); }
 .context-menu button.danger { color: #f87171; }
 
 /* ── Avatar gradients ─────────────────────────────────────── */
@@ -149,8 +246,42 @@ textarea { resize: none; }
   100% { transform: scale(2.2); opacity: 0; }
 }
 
-/* ── Light mode support ───────────────────────────────────── */
-.light {
-  --wa-dark: #f0f2f5;
-  --wa-sidebar: #ffffff;
+/* ── Global Light Mode Overrides for Borders & Hovers ─────── */
+html:not(.dark) .border-white\/5,
+html:not(.dark) .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html:not(.dark) .border-gray-700,
+html:not(.dark) .border-gray-700\/30,
+html:not(.dark) .border-gray-700\/40,
+html:not(.dark) .border-gray-700\/50,
+html:not(.dark) .border-gray-700\/60,
+html:not(.dark) .border-gray-700\/70,
+html:not(.dark) .border-gray-800 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+html:not(.dark) .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+html:not(.dark) .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html:not(.dark) .hover\:bg-white\/20:hover {
+  background-color: rgba(0, 0, 0, 0.09) !important;
+}
+
+html:not(.dark) .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+html:not(.dark) .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html:not(.dark) .text-gray-400 {
+  color: #667781 !important;
 }

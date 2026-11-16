@@ -1,9 +1,24 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CHASKYAPP — Mensajería Empresarial</title>
+
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('chasky_theme') || 'dark';
+        if (t === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
+      } catch(e) {}
+    })();
+  </script>
   
   <!-- PWA & Mobile Meta Tags -->
   <meta name="theme-color" content="#00a884" />

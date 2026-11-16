@@ -371,7 +371,7 @@ function MessageBubble({
           ) : isDocumentCard ? (
             <DocumentCard message={msg} chatId={activeChat?.id} />
           ) : (
-            <div className="text-sm text-wa-text leading-relaxed prose prose-sm prose-invert max-w-none prose-code:bg-black/30 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-black/40 prose-pre:rounded-lg">
+            <div className="text-sm text-wa-text leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-code:bg-black/10 dark:prose-code:bg-black/30 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-black/10 dark:prose-pre:bg-black/40 prose-pre:rounded-lg">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {msg.content || ''}
               </ReactMarkdown>
@@ -1415,8 +1415,7 @@ export default function ChatArea() {
       {/* ── Messages List ───────────────────────────────────────────── */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto py-4"
-        style={{ background: 'radial-gradient(ellipse at 20% 50%, rgba(0,168,132,0.03) 0%, transparent 70%), #0b141a' }}
+        className="flex-1 overflow-y-auto py-4 chat-bg"
       >
         {/* Upload progress */}
         {uploading && (
@@ -1841,7 +1840,7 @@ export default function ChatArea() {
               className={`flex-1 min-w-[120px] sm:min-w-[200px] w-full rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 outline-none resize-none text-sm leading-normal transition-all min-h-[46px] max-h-[140px] overflow-y-auto focus:ring-2 focus:ring-emerald-500/50 shadow-inner ${
                 isInternalNoteMode
                   ? 'bg-amber-950/25 border-2 border-amber-500/60 text-amber-100 placeholder-amber-400/50 focus:border-amber-400'
-                  : 'bg-wa-header text-wa-text placeholder-wa-secondary/80 border border-white/5 focus:border-emerald-500/40'
+                  : 'bg-white dark:bg-wa-header text-wa-text placeholder-wa-secondary/80 border border-wa-border focus:border-emerald-500/40'
               }`}
             />
 

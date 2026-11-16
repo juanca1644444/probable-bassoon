@@ -2,10 +2,10 @@ import React from 'react'
 
 export default function EmptyState() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-wa-chat select-none">
+    <div className="flex-1 flex flex-col items-center justify-center bg-wa-dark dark:bg-wa-chat select-none border-b-[6px] border-wa-green transition-colors">
       {/* CHASKYAPP Brand Emblem */}
       <div className="mb-8">
-        <div className="w-56 h-56 rounded-full bg-wa-header/40 flex items-center justify-center">
+        <div className="w-56 h-56 rounded-full bg-black/5 dark:bg-wa-header/40 flex items-center justify-center transition-colors">
           <div className="w-36 h-36 rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 flex items-center justify-center shadow-2xl text-white">
             <svg viewBox="0 0 24 24" className="w-20 h-20 text-white drop-shadow-md" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />

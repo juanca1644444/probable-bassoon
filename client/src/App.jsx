@@ -273,6 +273,7 @@ export default function App() {
   // Apply theme class on mount + change (always, incluso en login)
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.classList.toggle('light', theme === 'light');
   }, [theme]);
 
   if (!isAuthenticated) return <LoginQR />;

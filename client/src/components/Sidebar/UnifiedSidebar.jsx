@@ -173,7 +173,7 @@ export default function UnifiedSidebar({
               className={`flex flex-col items-center justify-center py-1 px-1 rounded-lg border transition-all text-[11px] ${
                 isSelected
                   ? 'bg-wa-green/15 border-wa-green text-wa-green font-bold shadow-sm'
-                  : 'bg-wa-input/60 hover:bg-wa-input border-transparent text-wa-secondary hover:text-wa-text'
+                  : 'bg-black/5 dark:bg-wa-input/60 hover:bg-black/10 dark:hover:bg-wa-input border-transparent text-wa-secondary hover:text-wa-text'
               }`}
             >
               <div className="flex items-center gap-1">
@@ -193,7 +193,7 @@ export default function UnifiedSidebar({
         <button
           type="button"
           onClick={() => scroll('left')}
-          className="w-6 h-6 rounded-full bg-wa-input/80 hover:bg-wa-input text-wa-secondary hover:text-wa-text border border-wa-border/50 text-[10px] flex items-center justify-center flex-shrink-0 transition-colors shadow-sm"
+          className="w-6 h-6 rounded-full bg-black/5 dark:bg-wa-input/80 hover:bg-black/10 dark:hover:bg-wa-input text-wa-secondary hover:text-wa-text border border-wa-border/50 text-[10px] flex items-center justify-center flex-shrink-0 transition-colors shadow-sm"
           title="Desplazar filtros a la izquierda"
         >
           ◀
@@ -210,7 +210,7 @@ export default function UnifiedSidebar({
             className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1.5 ${
               selectedAssignment === 'mine'
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                : 'bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
             <span>👤 Mis Asignados</span>
@@ -222,7 +222,7 @@ export default function UnifiedSidebar({
             className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1.5 ${
               selectedAssignment === 'unassigned'
                 ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                : 'bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
             <span>❓ Sin Asignar</span>
@@ -235,7 +235,7 @@ export default function UnifiedSidebar({
             className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1 ${
               selectedStatus === 'open'
                 ? 'bg-green-600 text-white border-green-600 shadow-sm'
-                : 'bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
@@ -247,7 +247,7 @@ export default function UnifiedSidebar({
             className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1 ${
               selectedStatus === 'pending'
                 ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                : 'bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
@@ -259,7 +259,7 @@ export default function UnifiedSidebar({
             className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors flex items-center gap-1 ${
               selectedStatus === 'resolved'
                 ? 'bg-slate-600 text-white border-slate-600 shadow-sm'
-                : 'bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
+                : 'bg-black/5 dark:bg-wa-input text-wa-secondary border-wa-border/50 hover:text-wa-text'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
@@ -270,7 +270,7 @@ export default function UnifiedSidebar({
         <button
           type="button"
           onClick={() => scroll('right')}
-          className="w-6 h-6 rounded-full bg-wa-input/80 hover:bg-wa-input text-wa-secondary hover:text-wa-text border border-wa-border/50 text-[10px] flex items-center justify-center flex-shrink-0 transition-colors shadow-sm"
+          className="w-6 h-6 rounded-full bg-black/5 dark:bg-wa-input/80 hover:bg-black/10 dark:hover:bg-wa-input text-wa-secondary hover:text-wa-text border border-wa-border/50 text-[10px] flex items-center justify-center flex-shrink-0 transition-colors shadow-sm"
           title="Desplazar filtros a la derecha"
         >
           ▶

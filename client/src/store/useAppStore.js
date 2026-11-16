@@ -5,6 +5,16 @@ const getInitialAuth = () => {
   try { return localStorage.getItem('wa_pro_auth') === 'true' } catch { return false }
 }
 
+const getInitialTheme = () => {
+  try {
+    const saved = localStorage.getItem('chasky_theme')
+    if (saved === 'light' || saved === 'dark') return saved
+    return 'dark'
+  } catch {
+    return 'dark'
+  }
+}
+
 const useAppStore = create((set, get) => ({
   // ── Auth ──────────────────────────────────────────────────────────────────
   isAuthenticated: getInitialAuth(),
@@ -26,7 +36,7 @@ const useAppStore = create((set, get) => ({
   ws: null,
 
   // ── UI State ──────────────────────────────────────────────────────────────
-  theme: 'dark',
+  theme: getInitialTheme(),
   sidebarCollapsed: false,
   rightPanelOpen: false,
   typingUsers: {},       // { chatId: { userId: true } }
@@ -145,12 +155,16 @@ const useAppStore = create((set, get) => ({
 
   // ── UI Actions ────────────────────────────────────────────────────────────
   setTheme: (theme) => {
+    try { localStorage.setItem('chasky_theme', theme) } catch {}
     document.documentElement.classList.toggle('dark', theme === 'dark')
+    document.documentElement.classList.toggle('light', theme === 'light')
     set({ theme })
   },
   toggleTheme: () => {
     const next = get().theme === 'dark' ? 'light' : 'dark'
+    try { localStorage.setItem('chasky_theme', next) } catch {}
     document.documentElement.classList.toggle('dark', next === 'dark')
+    document.documentElement.classList.toggle('light', next === 'light')
     set({ theme: next })
   },
   setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),

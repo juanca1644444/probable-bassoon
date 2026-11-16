@@ -74,8 +74,8 @@ function ChatItem({ chat, isActive, onClick, onLockChat, onAssignLabels, sentime
     <div
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className={`flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-white/5 transition-colors relative ${
-        isActive ? 'bg-wa-input' : ''
+      className={`flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors relative ${
+        isActive ? 'bg-[#f0f2f5] dark:bg-wa-input shadow-sm' : ''
       }`}
     >
       <Avatar name={chat.groupName || chat.contactName} avatar={chat.groupAvatar || chat.contactAvatar} isOnline={chat.contactIsOnline === 1} />
@@ -808,7 +808,7 @@ export default function Sidebar() {
 
           {/* Search */}
           <div className="px-3 py-2 bg-wa-sidebar">
-            <div className="flex items-center bg-wa-input rounded-lg px-3 gap-2">
+            <div className="flex items-center bg-[#f0f2f5] dark:bg-wa-input rounded-lg px-3 gap-2">
               <svg className="w-4 h-4 text-wa-secondary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8"/><path strokeLinecap="round" d="m21 21-4.35-4.35"/>
               </svg>
@@ -856,7 +856,7 @@ export default function Sidebar() {
                 <button
                   type="button"
                   onClick={() => scrollTabs('left')}
-                  className="w-5 h-5 rounded-full bg-wa-input/80 hover:bg-wa-input text-wa-secondary hover:text-wa-text border border-wa-border/50 text-[9px] flex items-center justify-center flex-shrink-0 transition-colors shadow-sm"
+                  className="w-5 h-5 rounded-full bg-black/5 dark:bg-wa-input/80 hover:bg-black/10 dark:hover:bg-wa-input text-wa-secondary hover:text-wa-text border border-wa-border/50 text-[9px] flex items-center justify-center flex-shrink-0 transition-colors shadow-sm"
                   title="Desplazar categorías a la izquierda"
                 >
                   ◀
@@ -874,7 +874,7 @@ export default function Sidebar() {
                       className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         activeFilter === f.key
                           ? 'bg-wa-green text-white shadow-sm font-semibold'
-                          : 'bg-wa-input text-wa-secondary hover:text-wa-text'
+                          : 'bg-black/5 dark:bg-wa-input text-wa-secondary hover:text-wa-text'
                       }`}
                     >
                       {f.label}
@@ -885,7 +885,7 @@ export default function Sidebar() {
                 <button
                   type="button"
                   onClick={() => scrollTabs('right')}
-                  className="w-5 h-5 rounded-full bg-wa-input/80 hover:bg-wa-input text-wa-secondary hover:text-wa-text border border-wa-border/50 text-[9px] flex items-center justify-center flex-shrink-0 transition-colors shadow-sm"
+                  className="w-5 h-5 rounded-full bg-black/5 dark:bg-wa-input/80 hover:bg-black/10 dark:hover:bg-wa-input text-wa-secondary hover:text-wa-text border border-wa-border/50 text-[9px] flex items-center justify-center flex-shrink-0 transition-colors shadow-sm"
                   title="Desplazar categorías a la derecha"
                 >
                   ▶

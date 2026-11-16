@@ -1,3 +1,12 @@
+function withOpacity(variableName) {
+  return ({ opacityValue }) => {
+    if (opacityValue !== undefined) {
+      return `rgba(var(${variableName}), ${opacityValue})`
+    }
+    return `rgb(var(${variableName}))`
+  }
+}
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -6,17 +15,21 @@ export default {
     extend: {
       colors: {
         wa: {
-          green:     '#00a884',
-          dark:      '#111b21',
-          sidebar:   '#111b21',
-          chat:      '#0b141a',
-          bubble:    '#005c4b',
-          'bubble-in': '#202c33',
-          header:    '#202c33',
-          input:     '#2a3942',
-          icon:      '#aebac1',
-          text:      '#e9edef',
-          secondary: '#8696a0',
+          green:       withOpacity('--wa-green-rgb'),
+          'green-hover': withOpacity('--wa-green-hover-rgb'),
+          dark:        withOpacity('--wa-dark-rgb'),
+          sidebar:     withOpacity('--wa-sidebar-rgb'),
+          chat:        withOpacity('--wa-chat-rgb'),
+          'chat-bg':   withOpacity('--wa-chat-rgb'),
+          bubble:      withOpacity('--wa-bubble-rgb'),
+          'bubble-in': withOpacity('--wa-bubble-in-rgb'),
+          header:      withOpacity('--wa-header-rgb'),
+          input:       withOpacity('--wa-input-rgb'),
+          icon:        withOpacity('--wa-icon-rgb'),
+          text:        withOpacity('--wa-text-rgb'),
+          secondary:   withOpacity('--wa-secondary-rgb'),
+          border:      withOpacity('--wa-border-rgb'),
+          hover:       withOpacity('--wa-hover-rgb'),
         },
       },
       fontFamily: {
