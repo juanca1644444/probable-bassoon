@@ -44,7 +44,7 @@ function computeWaveform(audioBuffer, bars = 40) {
 }
 
 // ── Componente principal ───────────────────────────────────────────────────────
-export default function VoiceRecorder({ chatId, onSend, onCancel }) {
+export default function VoiceRecorder({ chatId, onSend, onCancel, senderId, senderName }) {
   const [seconds, setSeconds]       = useState(0)
   const [phase, setPhase]           = useState('recording') // 'recording' | 'preview' | 'sending'
   const [audioUrl, setAudioUrl]     = useState(null)
@@ -217,7 +217,8 @@ export default function VoiceRecorder({ chatId, onSend, onCancel }) {
     const ext  = audioBlob.type.includes('ogg') ? '.ogg' : '.webm'
     form.append('audio',      audioBlob, `voice${ext}`)
     form.append('chatId',     chatId)
-    form.append('senderId',   'me')
+    form.append('senderId',   senderId || 'agent-me')
+    form.append('senderName', senderName || 'Yo')
     form.append('duration',   String(seconds))
     form.append('waveform',   JSON.stringify(waveform))
 

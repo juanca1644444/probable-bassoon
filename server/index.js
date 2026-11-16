@@ -1799,10 +1799,28 @@ app.post('/api/messages/:chatId', (req, res) => {
     lastMsgSummary = '💟 Sticker';
   }
 
-  db.prepare("UPDATE chats SET lastMessage = ?, lastMessageTime = ?, unreadCount = 0 WHERE id = ?")
-    .run(lastMsgSummary, timestamp, chatId);
+  const isOutgoingFromMe = senderId === 'me' || senderId === 'agent-me';
+  if (isOutgoingFromMe) {
+    db.prepare("UPDATE chats SET lastMessage = ?, lastMessageTime = ?, unreadCount = 0 WHERE id = ?")
+      .run(lastMsgSummary, timestamp, chatId);
+  } else {
+    db.prepare("UPDATE chats SET lastMessage = ?, lastMessageTime = ?, unreadCount = unreadCount + 1 WHERE id = ?")
+      .run(lastMsgSummary, timestamp, chatId);
+  }
   const msg = db.prepare('SELECT * FROM messages WHERE id = ?').get(id);
-  broadcast({ type: 'new_message', message: msg, chatId });
+  const updatedChat = db.prepare(`
+    SELECT c.*, co.name AS contactName, co.avatar AS contactAvatar,
+           co.isOnline AS contactIsOnline, co.lastSeen AS contactLastSeen,
+           co.status AS contactStatus, co.phone AS contactPhone,
+           ag.name AS assignedAgentName, ag.avatar AS assignedAgentAvatar, ag.role AS assignedAgentRole
+    FROM chats c
+    LEFT JOIN contacts co ON c.contactId = co.id
+    LEFT JOIN agents ag ON c.assignedAgentId = ag.id
+    WHERE c.id = ?
+  `).get(chatId);
+
+  broadcast({ type: 'chat_updated', chat: updatedChat });
+  broadcast({ type: 'new_message', message: msg, chatId, chat: updatedChat });
   try {
     dispatchWebhook(senderId === 'me' ? 'message.sent' : 'message.received', { message: msg, chatId });
   } catch {}
@@ -4499,14 +4517,30 @@ app.post('/api/voice', audioUpload.single('audio'), (req, res) => {
     waveform
   );
 
-  db.prepare(
-    "UPDATE chats SET lastMessage = ?, lastMessageTime = ? WHERE id = ?"
-  ).run('🎤 Nota de voz', now, chatId);
+  const isOutgoingFromMe = senderId === 'me' || senderId === 'agent-me';
+  if (isOutgoingFromMe) {
+    db.prepare("UPDATE chats SET lastMessage = ?, lastMessageTime = ?, unreadCount = 0 WHERE id = ?")
+      .run('🎤 Nota de voz', now, chatId);
+  } else {
+    db.prepare("UPDATE chats SET lastMessage = ?, lastMessageTime = ?, unreadCount = unreadCount + 1 WHERE id = ?")
+      .run('🎤 Nota de voz', now, chatId);
+  }
 
   const msg = db.prepare('SELECT * FROM messages WHERE id = ?').get(id);
+  const updatedChat = db.prepare(`
+    SELECT c.*, co.name AS contactName, co.avatar AS contactAvatar,
+           co.isOnline AS contactIsOnline, co.lastSeen AS contactLastSeen,
+           co.status AS contactStatus, co.phone AS contactPhone,
+           ag.name AS assignedAgentName, ag.avatar AS assignedAgentAvatar, ag.role AS assignedAgentRole
+    FROM chats c
+    LEFT JOIN contacts co ON c.contactId = co.id
+    LEFT JOIN agents ag ON c.assignedAgentId = ag.id
+    WHERE c.id = ?
+  `).get(chatId);
 
-  // Real-time broadcast to all OTHER clients
-  broadcast({ type: 'new_message', chatId, message: msg });
+  // Real-time broadcast to all clients
+  if (updatedChat) broadcast({ type: 'chat_updated', chat: updatedChat });
+  broadcast({ type: 'new_message', chatId, message: msg, chat: updatedChat });
 
   // Simulate delivery confirmation after 600ms
   setTimeout(() => {
@@ -5983,12 +6017,30 @@ app.post('/api/sync', (req, res) => {
           );
 
           const lastMsgSummary = p.type === 'sticker' ? '💟 Sticker' : (p.content || p.fileName || 'Archivo');
-          db.prepare('UPDATE chats SET lastMessage = ?, lastMessageTime = ?, isArchived = 0 WHERE id = ?')
-            .run(lastMsgSummary, msgTimestamp, item.chatId || p.chatId);
+          const isOutgoingFromMe = (p.senderId === 'me' || p.senderId === 'agent-me');
+          if (isOutgoingFromMe) {
+            db.prepare('UPDATE chats SET lastMessage = ?, lastMessageTime = ?, isArchived = 0 WHERE id = ?')
+              .run(lastMsgSummary, msgTimestamp, item.chatId || p.chatId);
+          } else {
+            db.prepare('UPDATE chats SET lastMessage = ?, lastMessageTime = ?, unreadCount = unreadCount + 1, isArchived = 0 WHERE id = ?')
+              .run(lastMsgSummary, msgTimestamp, item.chatId || p.chatId);
+          }
+
+          const updatedChat = db.prepare(`
+            SELECT c.*, co.name AS contactName, co.avatar AS contactAvatar,
+                   co.isOnline AS contactIsOnline, co.lastSeen AS contactLastSeen,
+                   co.status AS contactStatus, co.phone AS contactPhone,
+                   ag.name AS assignedAgentName, ag.avatar AS assignedAgentAvatar, ag.role AS assignedAgentRole
+            FROM chats c
+            LEFT JOIN contacts co ON c.contactId = co.id
+            LEFT JOIN agents ag ON c.assignedAgentId = ag.id
+            WHERE c.id = ?
+          `).get(item.chatId || p.chatId);
 
           const newMsg = db.prepare('SELECT * FROM messages WHERE id = ?').get(item.id);
           if (newMsg) {
-            broadcast({ type: 'new_message', chatId: item.chatId || p.chatId, message: newMsg, fromSync: true });
+            if (updatedChat) broadcast({ type: 'chat_updated', chat: updatedChat });
+            broadcast({ type: 'new_message', chatId: item.chatId || p.chatId, message: newMsg, chat: updatedChat, fromSync: true });
           }
           processedOutboxIds.push(item.id);
         } else if (item.actionType === 'mark_read') {
@@ -6086,13 +6138,13 @@ setInterval(() => {
   }
 }, 5000);
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 CHASKYAPP Server running at http://0.0.0.0:${PORT} (LAN: http://192.168.1.9:${PORT})`);
-  console.log(`📡 WebSocket server ready at ws://0.0.0.0:${PORT}/ws`);
-  console.log(`💾 SQLite database: ${DB_PATH}`);
-  console.log(`📁 Uploads: ${uploadDir}\n`);
+  console.log(`\n🚀 CHASKYAPP Suite Empresarial (Red Privada Autónoma)`);
+  console.log(`🌐 Servidor Web disponible en: http://0.0.0.0:${PORT} (LAN: http://192.168.1.9:${PORT})`);
+  console.log(`📡 WebSocket Engine listo en: ws://0.0.0.0:${PORT}/ws`);
+  console.log(`💾 Base de datos SQLite: ${DB_PATH}`);
+  console.log(`📁 Directorio de adjuntos: ${uploadDir}`);
+  console.log(`🔒 Modo Red Privada Cerrada: 100% Autónomo sin dependencias externas.\n`);
 
-  // Initialize WhatsApp Web Multi-Device Gateway
-  initWhatsAppGateway().catch((err) => {
-    console.error('⚠️ [WhatsApp Gateway] Failed to auto-start:', err.message);
-  });
+  // WhatsApp Gateway decoupled (manual on-demand only if required)
+  // initWhatsAppGateway().catch((err) => { ... });
 });

@@ -633,7 +633,7 @@ function LoadMoreButton({ onClick, loading }) {
 
 // ── Main ChatArea Component ────────────────────────────────────────────────
 export default function ChatArea() {
-  const { activeChat, messages, typingUsers, ws, setMessages, addMessage, markChatRead, toggleRightPanel, replyTo, setReplyTo, startCall, inChatSearchOpen, setInChatSearchOpen, chatInputDraft, setChatInputDraft } = useAppStore()
+  const { activeChat, messages, typingUsers, ws, setMessages, addMessage, markChatRead, toggleRightPanel, replyTo, setReplyTo, startCall, inChatSearchOpen, setInChatSearchOpen, chatInputDraft, setChatInputDraft, currentUser } = useAppStore()
   const [text, setText] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -660,6 +660,7 @@ export default function ChatArea() {
   const [selectedQuickReplyIndex, setSelectedQuickReplyIndex] = useState(0)
   const [internalNotes, setInternalNotes] = useState([])
   const [isInternalNoteMode, setIsInternalNoteMode] = useState(false)
+  const [isContactSimulatorMode, setIsContactSimulatorMode] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
   const [translations, setTranslations] = useState({})
 
@@ -1034,8 +1035,8 @@ export default function ChatArea() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content,
-            authorName: 'Yo (Operador Actual)',
-            authorId: 'agent-me'
+            authorName: currentUser?.name || 'Yo (Operador Actual)',
+            authorId: currentUser?.id || 'agent-me'
           })
         })
         if (res.ok) {
@@ -1053,19 +1054,28 @@ export default function ChatArea() {
     setReplyTo(null)
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
-    ws?.send(JSON.stringify({ type: 'stop_typing', chatId, userId: 'me' }))
+    ws?.send(JSON.stringify({ type: 'stop_typing', chatId, userId: currentUser?.id || 'me' }))
+
+    const senderId = isContactSimulatorMode
+      ? (activeChat?.contactId || 'c_' + (activeChat?.contactName || 'contacto').toLowerCase().replace(/\s+/g, '_'))
+      : (currentUser?.id || 'agent-me');
+    const senderName = isContactSimulatorMode
+      ? (activeChat?.groupName || activeChat?.contactName || 'Contacto')
+      : (currentUser?.name || 'Yo');
 
     try {
       await sendOfflineFirstMessage({
         chatId,
         content,
         replyTo: targetReplyTo?.id || null,
-        type: 'text'
+        type: 'text',
+        senderId,
+        senderName
       }, useAppStore)
     } catch (e) {
       console.error('sendOfflineFirstMessage failed', e)
     }
-  }, [text, chatId, replyTo, ws, isInternalNoteMode])
+  }, [text, chatId, replyTo, ws, isInternalNoteMode, isContactSimulatorMode, currentUser, activeChat])
 
   // Typing indicator via WS
   const handleTyping = (val) => {
@@ -1445,7 +1455,8 @@ export default function ChatArea() {
             )
           }
           const { msg } = item
-          const isMe = msg.senderId === 'me'
+          const myId = currentUser?.id || 'agent-me'
+          const isMe = msg.senderId === myId || (msg.senderId === 'me' && (myId === 'agent-me' || myId === 'me'))
           const isPinned = pinnedMessages.some((p) => p.id === msg.id)
           const isStarred = Boolean(msg.isStarred)
           return (
@@ -1516,6 +1527,26 @@ export default function ChatArea() {
                 </span>
               )}
             </button>
+
+            {/* Simulator: Responder como Contacto */}
+            {activeChat?.type !== 'group' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsContactSimulatorMode(!isContactSimulatorMode)
+                  if (isInternalNoteMode) setIsInternalNoteMode(false)
+                }}
+                className={`px-3 py-1 rounded-full text-xs flex items-center gap-1.5 flex-shrink-0 transition-all ${
+                  isContactSimulatorMode
+                    ? 'bg-sky-500 text-white font-bold shadow-md ring-2 ring-sky-400'
+                    : 'text-sky-800 dark:text-sky-300 hover:text-sky-900 dark:hover:text-sky-200 hover:bg-sky-500/15 font-bold border border-sky-400/40'
+                }`}
+                title={`Simular respuesta del contacto (${activeChat?.contactName || 'Contacto'}) para probar timbre y chat en vivo`}
+              >
+                <span>👤</span>
+                <span>{isContactSimulatorMode ? `Respondiendo como ${activeChat?.contactName?.split(' ')[0] || 'Contacto'}` : `Responder como ${activeChat?.contactName?.split(' ')[0] || 'Contacto'}`}</span>
+              </button>
+            )}
 
             {/* Separator */}
             <div className="h-4 w-px bg-wa-border mx-1 flex-shrink-0" />
@@ -1640,6 +1671,8 @@ export default function ChatArea() {
         {showRecorder ? (
           <VoiceRecorder
             chatId={chatId}
+            senderId={currentUser?.id || 'agent-me'}
+            senderName={currentUser?.name || 'Yo'}
             onSend={(msg) => {
               addMessage(chatId, msg)
               setShowRecorder(false)
@@ -1834,12 +1867,16 @@ export default function ChatArea() {
               placeholder={
                 isInternalNoteMode
                   ? "Escribe una nota interna para tu equipo (NUNCA visible para el cliente)..."
+                  : isContactSimulatorMode
+                  ? `Simulando a ${activeChat?.contactName || 'Contacto'}: escribe aquí para enviar como mensaje entrante en vivo...`
                   : "Escribe un mensaje aquí (o presiona '/' para respuestas rápidas)..."
               }
               rows={1}
               className={`flex-1 min-w-[120px] sm:min-w-[200px] w-full rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 outline-none resize-none text-sm leading-normal transition-all min-h-[46px] max-h-[140px] overflow-y-auto focus:ring-2 focus:ring-emerald-500/50 shadow-inner ${
                 isInternalNoteMode
                   ? 'bg-amber-950/25 border-2 border-amber-500/60 text-amber-100 placeholder-amber-400/50 focus:border-amber-400'
+                  : isContactSimulatorMode
+                  ? 'bg-sky-950/20 border-2 border-sky-500/60 text-sky-100 placeholder-sky-400/60 focus:border-sky-400'
                   : 'bg-white dark:bg-wa-header text-wa-text placeholder-wa-secondary/80 border border-wa-border focus:border-emerald-500/40'
               }`}
             />
@@ -1859,6 +1896,21 @@ export default function ChatArea() {
               >
                 <span>🔒</span>
                 <span>Guardar Nota</span>
+              </button>
+            ) : isContactSimulatorMode ? (
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!text.trim()}
+                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md flex-shrink-0 ${
+                  text.trim()
+                    ? 'bg-sky-500 hover:bg-sky-400 text-white cursor-pointer transform hover:scale-105 active:scale-95'
+                    : 'bg-sky-500/20 text-sky-200/40 cursor-not-allowed'
+                }`}
+                title="Enviar como mensaje entrante del contacto (simula su teléfono)"
+              >
+                <span>👤</span>
+                <span>Enviar Contacto</span>
               </button>
             ) : text.trim() ? (
               <button

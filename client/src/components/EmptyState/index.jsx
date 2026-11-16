@@ -16,14 +16,14 @@ export default function EmptyState() {
 
       <h2 className="text-wa-text text-3xl font-light mb-3">CHASKYAPP</h2>
       <p className="text-wa-secondary text-sm text-center max-w-sm mb-8">
-        Plataforma integral de mensajería empresarial y omnicanal inteligente. Conecta WhatsApp, Telegram y Web en tiempo real.
+        Red privada de mensajería empresarial e institucional. Comunicación cifrada en tiempo real, videollamadas P2P y asistencia inteligente con IA.
       </p>
 
       <div className="flex items-center gap-2 text-wa-secondary text-xs">
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
         </svg>
-        <span>Tus mensajes personales están cifrados de extremo a extremo</span>
+        <span>Red cerrada protegida y cifrada en tu propio servidor</span>
       </div>
     </div>
   )

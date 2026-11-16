@@ -5,6 +5,20 @@ const getInitialAuth = () => {
   try { return localStorage.getItem('wa_pro_auth') === 'true' } catch { return false }
 }
 
+const getInitialCurrentUser = () => {
+  try {
+    const saved = localStorage.getItem('chasky_current_user');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return {
+    id: 'agent-me',
+    name: 'Yo (Super Admin)',
+    role: 'Coordinador General',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+    color: '#00a884'
+  };
+};
+
 const getInitialTheme = () => {
   try {
     const saved = localStorage.getItem('chasky_theme')
@@ -27,8 +41,13 @@ export function sortChats(chats) {
 }
 
 const useAppStore = create((set, get) => ({
-  // ── Auth ──────────────────────────────────────────────────────────────────
+  // ── Auth & Identity ──────────────────────────────────────────────────────
   isAuthenticated: getInitialAuth(),
+  currentUser: getInitialCurrentUser(),
+  setCurrentUser: (user) => {
+    try { localStorage.setItem('chasky_current_user', JSON.stringify(user)) } catch {}
+    set({ currentUser: user })
+  },
 
   login: () => {
     try { localStorage.setItem('wa_pro_auth', 'true') } catch {}
@@ -212,15 +231,16 @@ const useAppStore = create((set, get) => ({
     if (!chat) return
     const callId = `call-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const ws = get().ws
+    const me = get().currentUser || { id: 'agent-me', name: 'Yo' }
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
         type: 'START_CALL',
         callId,
         chatId: chat.id,
         callType: type,
-        callerId: 'me',
-        callerName: 'Yo',
-        callerAvatar: '',
+        callerId: me.id,
+        callerName: me.name,
+        callerAvatar: me.avatar || '',
         receiverId: chat.contactId || chat.id,
       }))
     }

@@ -29,6 +29,7 @@ import IvrBuilder from '../Telephony/IvrBuilder'
 import DocumentGenerator from '../Documents/DocumentGenerator'
 import BusinessIntelligenceDashboard from '../Analytics/BusinessIntelligenceDashboard'
 import AiAgentsHub from '../Settings/AiAgentsHub'
+import UserIdentityModal from '../Settings/UserIdentityModal'
 import useTenantStore from '../../store/useTenantStore'
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
@@ -195,10 +196,11 @@ export default function Sidebar() {
     chats, activeChat, setActiveChat, setMessages, messages,
     searchQuery, setSearchQuery, activeFilter, setActiveFilter,
     sidebarCollapsed, setSidebarCollapsed, markChatRead, toggleTheme, theme,
-    isConnected, logout, setLocked,
+    isConnected, logout, setLocked, currentUser,
   } = useAppStore()
 
   const [showMenu, setShowMenu] = useState(false)
+  const [showIdentityModal, setShowIdentityModal] = useState(false)
   const [showNewGroup, setShowNewGroup] = useState(false)
   const [showNewChat, setShowNewChat] = useState(false)
   const [showNewBroadcast, setShowNewBroadcast] = useState(false)
@@ -418,17 +420,25 @@ export default function Sidebar() {
         {!sidebarCollapsed ? (
           <>
             <div
-              onClick={() => handleOpenSettings('profile')}
+              onClick={() => setShowIdentityModal(true)}
               className="flex items-center gap-2 cursor-pointer group"
-              title="Tu perfil y ajustes"
+              title={`Perfil Activo: ${currentUser?.name || 'Yo'} (${currentUser?.role || 'Super Admin'}). Clic para cambiar de usuario o dispositivo.`}
             >
-              <div className="w-9 h-9 rounded-full avatar-gradient-3 flex items-center justify-center text-white font-semibold text-sm group-hover:ring-2 group-hover:ring-wa-green transition-all shadow-md">
-                Yo
-              </div>
-              {/* WS connection indicator */}
-              <div className="flex items-center gap-1">
-                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-wa-green' : 'bg-yellow-500 animate-pulse'}`} />
-                <span className="text-[10px] text-wa-secondary">{isConnected ? 'Conectado' : 'Reconectando...'}</span>
+              {currentUser?.avatar ? (
+                <img src={currentUser.avatar} alt={currentUser.name} className="w-9 h-9 rounded-full object-cover group-hover:ring-2 group-hover:ring-wa-green transition-all shadow-md" />
+              ) : (
+                <div className={`w-9 h-9 rounded-full ${getAvatarGradient(currentUser?.name || 'Yo')} flex items-center justify-center text-white font-semibold text-xs group-hover:ring-2 group-hover:ring-wa-green transition-all shadow-md`}>
+                  {getInitials(currentUser?.name || 'Yo')}
+                </div>
+              )}
+              <div className="flex flex-col min-w-0 max-w-[105px]">
+                <span className="text-xs font-bold text-wa-text truncate leading-tight group-hover:text-emerald-400 transition-colors">
+                  {currentUser?.name ? currentUser.name.split(' ')[0] : 'Yo'}
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-wa-green' : 'bg-yellow-500 animate-pulse'}`} />
+                  <span className="text-[9px] text-wa-secondary truncate">{isConnected ? 'En red' : 'Reconectando'}</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -531,6 +541,18 @@ export default function Sidebar() {
                 </button>
                 {showMenu && (
                   <div className="absolute right-0 top-10 w-64 max-h-[82vh] overflow-y-auto scrollbar-thin bg-wa-header rounded-xl shadow-2xl z-40 py-1.5 border border-wa-border animate-scale-in">
+                    <button
+                      onClick={() => { setShowMenu(false); setShowIdentityModal(true) }}
+                      className="w-full text-left px-4 py-2.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center justify-between font-bold border-b border-wa-border/50"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <span className="text-base">🛡️</span>
+                        Identidad de Red
+                      </span>
+                      <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded-full font-mono">
+                        {currentUser?.name ? currentUser.name.split(' ')[0] : 'Yo'}
+                      </span>
+                    </button>
                     <button
                       onClick={() => { setShowMenu(false); setLocked(true) }}
                       className="w-full text-left px-4 py-2.5 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2.5 font-semibold"
@@ -1143,6 +1165,13 @@ export default function Sidebar() {
       {showAiAgentsHub && (
         <AiAgentsHub
           onClose={() => setShowAiAgentsHub(false)}
+        />
+      )}
+
+      {/* CHASKY Closed Network User Identity Switcher Modal */}
+      {showIdentityModal && (
+        <UserIdentityModal
+          onClose={() => setShowIdentityModal(false)}
         />
       )}
     </div>

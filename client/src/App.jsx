@@ -146,8 +146,10 @@ function AppShell() {
               : (data.message.type === 'audio' ? '🎤 Nota de voz' : (data.message.content || data.message.fileName || 'Archivo'));
             store.updateChatLastMessage(data.chatId, previewText, data.message.timestamp);
 
-            // Reproducir sonido en TODO mensaje entrante de un contacto (que no sea enviado por mí)
-            if (data.message?.senderId !== 'me') {
+            // Reproducir sonido en TODO mensaje entrante de un contacto/miembro (que no sea enviado por mí)
+            const myId = store.currentUser?.id || 'agent-me';
+            const isOutgoingFromMe = data.message?.senderId === myId || (data.message?.senderId === 'me' && (myId === 'agent-me' || myId === 'me'));
+            if (!isOutgoingFromMe) {
               playNotificationSound();
             }
 
@@ -209,7 +211,9 @@ function AppShell() {
               });
             }
           } else if (data.type === 'START_CALL') {
-            if (data.callerId !== 'me') {
+            const myId = store.currentUser?.id || 'agent-me';
+            const isCallFromMe = data.callerId === myId || (data.callerId === 'me' && (myId === 'agent-me' || myId === 'me'));
+            if (!isCallFromMe) {
               store.receiveCall(data);
             }
           } else if (data.type === 'ACCEPT_CALL') {

@@ -158,16 +158,21 @@ export async function processOutboxSync(useAppStore) {
 }
 
 // ── Offline-First Message Dispatcher ──────────────────────────────────────────
-export async function sendOfflineFirstMessage({ chatId, content, type = 'text', replyTo = null, fileName = null, fileSize = null, filePath = null }, useAppStore) {
+export async function sendOfflineFirstMessage({ chatId, content, type = 'text', replyTo = null, fileName = null, fileSize = null, filePath = null, senderId, senderName }, useAppStore) {
   const msgId = 'msg_' + Math.random().toString(36).slice(2, 9) + '_' + Date.now();
   const timestamp = Date.now();
   const isOnline = _isOnlineState && (typeof navigator !== 'undefined' ? navigator.onLine : true);
 
+  const store = useAppStore?.getState();
+  const myUser = store?.currentUser;
+  const resolvedSenderId = senderId || myUser?.id || 'agent-me';
+  const resolvedSenderName = senderName || myUser?.name || 'Yo';
+
   const optimisticMessage = {
     id: msgId,
     chatId,
-    senderId: 'me',
-    senderName: 'Yo',
+    senderId: resolvedSenderId,
+    senderName: resolvedSenderName,
     content,
     type,
     timestamp,

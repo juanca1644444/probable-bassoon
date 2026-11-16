@@ -16,10 +16,10 @@ export const CHANNELS = [
   },
   {
     id: 'whatsapp',
-    name: 'WhatsApp',
+    name: 'Red Privada',
     icon: (
-      <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm5.8 14.16c-.24.68-1.4 1.28-1.94 1.34-.5.06-1.12.08-3.62-.96-3.19-1.32-5.23-4.57-5.39-4.78-.16-.21-1.3-1.73-1.3-3.3 0-1.57.82-2.35 1.11-2.67.29-.32.63-.4.84-.4.21 0 .42 0 .61.01.2.01.47-.08.73.55.27.64.92 2.25 1 2.41.08.16.13.35.03.56-.11.21-.16.34-.32.53-.16.19-.34.42-.48.56-.16.16-.33.33-.14.65.19.32.84 1.38 1.8 2.24 1.24 1.1 2.28 1.45 2.61 1.61.32.16.51.14.7-.08.19-.21.82-.96 1.04-1.28.21-.32.43-.27.72-.16.29.11 1.85.87 2.17 1.03.32.16.53.24.61.38.08.13.08.79-.16 1.47z"/>
+      <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       </svg>
     ),
     color: 'text-emerald-400',
@@ -52,23 +52,20 @@ export const CHANNELS = [
 ]
 
 export function ChannelBadge({ channel, size = 'sm' }) {
-  const ch = CHANNELS.find(c => c.id === (channel || 'whatsapp')) || CHANNELS[1]
+  const isInternal = !channel || channel === 'whatsapp' || channel === 'chasky' || channel === 'internal';
+  const ch = isInternal
+    ? { id: 'chasky', name: 'CHASKY', color: 'text-emerald-500' }
+    : (CHANNELS.find(c => c.id === channel) || { id: 'chasky', name: 'CHASKY', color: 'text-emerald-500' });
   const isSm = size === 'sm'
 
   return (
     <span
       className={`inline-flex items-center gap-1 font-bold rounded-full border transition-all ${
-        isSm ? 'px-1.5 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
-      } ${
-        ch.id === 'whatsapp'
-          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 border-emerald-500/40 dark:bg-emerald-500/15'
-          : ch.id === 'telegram'
-          ? 'bg-sky-500/15 text-sky-800 dark:text-sky-400 border-sky-500/40 dark:bg-sky-500/15'
-          : 'bg-purple-500/15 text-purple-800 dark:text-purple-400 border-purple-500/40 dark:bg-purple-500/15'
-      }`}
-      title={`Canal: ${ch.name}`}
+        isSm ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
+      } bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 border-emerald-500/40`}
+      title="Red Privada CHASKY"
     >
-      {ch.icon}
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
       <span>{ch.name}</span>
     </span>
   )
