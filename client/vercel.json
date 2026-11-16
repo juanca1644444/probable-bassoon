@@ -1,8 +1,13 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://probable-bassoon-wk5u.onrender.com/api/$1"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "https://probable-bassoon-wk5u.onrender.com/uploads/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

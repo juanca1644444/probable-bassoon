@@ -11,7 +11,7 @@ if (typeof window !== 'undefined') {
   const originalFetch = window.fetch;
   const currentHost = window.location.hostname || 'localhost';
   const isDevPort = window.location.port === '5173' || window.location.port === '3000';
-  const envBackend = import.meta.env.VITE_BACKEND_URL;
+  const envBackend = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') ? 'https://probable-bassoon-wk5u.onrender.com' : null);
 
   window.fetch = function (resource, init) {
     if (typeof resource === 'string') {

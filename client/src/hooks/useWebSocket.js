@@ -16,7 +16,9 @@ export default function useWebSocket() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
     try {
-      const ws = new WebSocket(getWsUrl())
+      const wsUrl = getWsUrl()
+      console.log('[WS] Connecting to:', wsUrl)
+      const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
       ws.onopen = () => {

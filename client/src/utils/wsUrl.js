@@ -16,18 +16,15 @@ export function getWsUrl() {
     return base.endsWith('/ws') ? base : `${base}/ws`;
   }
 
-  // 3. Resolución dinámica universal:
-  const isHttps = window.location.protocol === 'https:';
-  const wsProtocol = isHttps ? 'wss:' : 'ws:';
+  // 3. Entorno de desarrollo local / LAN móvil
   const hostname = window.location.hostname || 'localhost';
   const isDevPort = window.location.port === '5173' || window.location.port === '3000';
-
-  // Si estamos en desarrollo en red local (ej: celular en 192.168.1.9:5173 o PC en localhost:5173),
-  // conectamos directamente al puerto 3001 del backend para máxima fiabilidad y evitar drops de proxy
   if (isDevPort) {
+    const isHttps = window.location.protocol === 'https:';
+    const wsProtocol = isHttps ? 'wss:' : 'ws:';
     return `${wsProtocol}//${hostname}:3001`;
   }
 
-  // En producción (Nginx o túnel seguro de puerto único 80/443), usar el proxy unificado /ws
-  return `${wsProtocol}//${window.location.host}/ws`;
+  // 4. Producción en Vercel -> Conexión directa al backend en Render
+  return 'wss://probable-bassoon-wk5u.onrender.com/ws';
 }

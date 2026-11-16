@@ -3,7 +3,7 @@ import axios from 'axios'
 // Resolución dinámica del Backend API para entorno local (PC), red local (LAN móvil), Serverless (Vercel/Netlify) y producción
 const isDev = typeof window !== 'undefined' && (window.location.port === '5173' || window.location.port === '3000');
 const host = typeof window !== 'undefined' ? (window.location.hostname || 'localhost') : 'localhost';
-const envBackend = import.meta.env.VITE_BACKEND_URL;
+const envBackend = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') ? 'https://probable-bassoon-wk5u.onrender.com' : null);
 
 let dynamicBaseURL = '/api';
 if (envBackend) {
