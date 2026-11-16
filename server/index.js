@@ -1,5 +1,14 @@
 'use strict';
 // index.js — WhatsApp Pro Server: Express + WebSocket + SQLite
+
+// Global protection against unhandled third-party errors to keep server 100% resilient
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ [Server Protected] Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ [Server Protected] Unhandled Rejection:', reason?.message || reason);
+});
+
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');

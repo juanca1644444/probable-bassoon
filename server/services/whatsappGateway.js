@@ -72,6 +72,15 @@ async function initWhatsAppGateway() {
       reconnectTimer = null;
     }
 
+    // Clean up any existing socket and listeners before re-initializing
+    if (sock) {
+      try {
+        sock.ev.removeAllListeners();
+        sock.ws?.close();
+      } catch (_) {}
+      sock = null;
+    }
+
     connectionStatus = 'connecting';
     notifyClients({ type: 'whatsapp_status', status: connectionStatus });
 
@@ -93,6 +102,7 @@ async function initWhatsAppGateway() {
       syncFullHistory: false,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
+      keepAliveIntervalMs: 25000,
     });
 
     // Save auth credentials whenever updated
@@ -152,8 +162,8 @@ async function initWhatsAppGateway() {
 
         if (shouldReconnect) {
           reconnectTimer = setTimeout(() => {
-            initWhatsAppGateway();
-          }, 4000);
+            initWhatsAppGateway().catch(e => console.warn('[WhatsApp Gateway] Reconnect error:', e.message));
+          }, 6000);
         } else {
           // If logged out from phone, wipe old credentials to allow a clean QR scan
           console.log('🚪 [WhatsApp Gateway] Sesión cerrada desde el celular. Limpiando credenciales locales...');
@@ -161,8 +171,8 @@ async function initWhatsAppGateway() {
             fs.rmSync(SESSION_DIR, { recursive: true, force: true });
           } catch (_) {}
           reconnectTimer = setTimeout(() => {
-            initWhatsAppGateway();
-          }, 2000);
+            initWhatsAppGateway().catch(e => console.warn('[WhatsApp Gateway] Reset error:', e.message));
+          }, 3000);
         }
       }
     });
