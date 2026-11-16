@@ -51,10 +51,10 @@ const CheckIcon = () => (
 
 // ── Pasos de instrucciones ─────────────────────────────────────────────────
 const STEPS = [
-  { icon: PhoneIcon, text: 'Abre WhatsApp en tu teléfono' },
-  { icon: MenuIcon,  text: 'Toca Menú  en Android o Configuración  en iPhone' },
+  { icon: PhoneIcon, text: 'Abre CHASKYAPP o WhatsApp Business en tu teléfono' },
+  { icon: MenuIcon,  text: 'Toca Menú en Android o Configuración en iPhone' },
   { icon: LinkIcon,  text: 'Selecciona Dispositivos vinculados y luego Vincular dispositivo' },
-  { icon: ScanIcon,  text: 'Apunta tu teléfono hacia esta pantalla para capturar el código' },
+  { icon: ScanIcon,  text: 'Apunta tu teléfono hacia esta pantalla para sincronizar tu sesión' },
 ]
 
 // ── Spinner animado ────────────────────────────────────────────────────────
@@ -171,10 +171,11 @@ export default function LoginQR() {
         style={{ background: 'linear-gradient(135deg, #00a884 0%, #008069 100%)' }}
       >
         <div className="flex items-center gap-3">
-          <svg viewBox="0 0 24 24" fill="white" className="w-9 h-9 drop-shadow-lg">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-            <path d="M12.004 0C5.374 0 0 5.373 0 12c0 2.113.554 4.148 1.606 5.933L0 24l6.26-1.583A11.954 11.954 0 0012.004 24C18.63 24 24 18.627 24 12S18.63 0 12.004 0zm0 21.818a9.818 9.818 0 01-5.001-1.368l-.359-.213-3.717.939.993-3.619-.234-.371A9.794 9.794 0 012.182 12c0-5.42 4.401-9.818 9.822-9.818 5.42 0 9.818 4.398 9.818 9.818 0 5.421-4.398 9.818-9.818 9.818z"/>
-          </svg>
+          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white drop-shadow-lg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
           <div>
             <h1 className="text-white text-2xl font-semibold tracking-tight drop-shadow">CHASKYAPP</h1>
             <p className="text-white/70 text-xs tracking-wider">SUITE EMPRESARIAL</p>
@@ -194,10 +195,10 @@ export default function LoginQR() {
             {/* ── Columna izquierda: instrucciones ─────────────────── */}
             <div className="flex-1 p-8">
               <h2 className={`text-xl font-semibold mb-1 ${textPrimary}`}>
-                Usa WhatsApp en tu computadora
+                Acceso a la Suite CHASKYAPP
               </h2>
               <p className={`text-sm mb-7 ${textSub}`}>
-                Vincula hasta 4 dispositivos adicionales sin necesidad de que tu teléfono esté conectado.
+                Vincula tu sesión omnicanal y gestiona conversaciones de WhatsApp, Telegram y Web en tiempo real.
               </p>
 
               <ol className="space-y-5">
