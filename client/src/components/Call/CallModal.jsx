@@ -48,14 +48,31 @@ function CtrlBtn({ onClick, active, danger, title, children, large }) {
   )
 }
 
-// ── Configuración WebRTC STUN ───────────────────────────────────────────────
+// ── Configuración WebRTC STUN + TURN (Soporte CGNAT y redes móviles 4G/5G) ────
 const RTC_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' }
-  ]
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    {
+      urls: 'turn:global.relay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:global.relay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:global.relay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
+  ],
+  iceCandidatePoolSize: 10
 }
 
 export default function CallModal() {
@@ -80,6 +97,7 @@ export default function CallModal() {
   const iceQueueRef = useRef([])
   const isInitiatorRef = useRef(!activeCall?.isIncoming)
   const offerSentRef = useRef(false)
+  const pendingOfferRef = useRef(null)
 
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
@@ -216,16 +234,16 @@ export default function CallModal() {
         // 3. Manejo de Tracks Remotos
         pc.ontrack = (event) => {
           console.log('[WebRTC] 📡 Track remoto recibido:', event.track.kind)
-          const remoteStream = event.streams[0]
+          const remoteStream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([event.track])
           remoteStreamRef.current = remoteStream
 
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream
-            remoteVideoRef.current.play().catch(() => {})
+            remoteVideoRef.current.play().catch(e => console.warn('[WebRTC] Video autoPlay diferido:', e))
           }
           if (remoteAudioRef.current) {
             remoteAudioRef.current.srcObject = remoteStream
-            remoteAudioRef.current.play().catch(() => {})
+            remoteAudioRef.current.play().catch(e => console.warn('[WebRTC] Audio autoPlay diferido:', e))
           }
           if (event.track.kind === 'video') {
             setHasRemoteVideo(true)
@@ -253,7 +271,15 @@ export default function CallModal() {
           }
         }
 
-        // 5. Si somos el llamador (Iniciador), crear y enviar la Oferta SDP
+        // 5. Si había una oferta SDP en cola esperando inicialización de hardware, procesarla
+        if (pendingOfferRef.current && !isInitiatorRef.current) {
+          const queuedOffer = pendingOfferRef.current
+          pendingOfferRef.current = null
+          console.log('[WebRTC] ⚡ Procesando WEBRTC_OFFER que aguardaba en cola')
+          await handleOfferSDP(pc, queuedOffer)
+        }
+
+        // 6. Si somos el llamador (Iniciador), crear y enviar la Oferta SDP
         if (isInitiatorRef.current && !offerSentRef.current) {
           offerSentRef.current = true
           const offer = await pc.createOffer({
@@ -290,6 +316,37 @@ export default function CallModal() {
     }
   }, [activeCall?.callId, callType])
 
+  // Función auxiliar para procesar ofertas remotas de forma segura
+  const handleOfferSDP = async (pc, offer) => {
+    try {
+      console.log('[WebRTC] 📩 Aplicando setRemoteDescription de Oferta')
+      await pc.setRemoteDescription(new RTCSessionDescription(offer))
+
+      // Vaciar cola de candidatos pendientes
+      while (iceQueueRef.current.length > 0) {
+        const cand = iceQueueRef.current.shift()
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(cand))
+        } catch (iceErr) {
+          console.warn('[WebRTC] Candidato en cola ignorado:', iceErr)
+        }
+      }
+
+      // Generar y enviar Answer
+      const answer = await pc.createAnswer()
+      await pc.setLocalDescription(answer)
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'WEBRTC_ANSWER',
+          callId: activeCall.callId,
+          answer
+        }))
+      }
+    } catch (err) {
+      console.error('[WebRTC] Error en handleOfferSDP:', err)
+    }
+  }
+
   // ── Listener de Señalización WebRTC (Offer, Answer, Candidates) ───────────
   useEffect(() => {
     const handleSignal = async (e) => {
@@ -298,26 +355,12 @@ export default function CallModal() {
       const pc = pcRef.current
 
       try {
-        if (data.type === 'WEBRTC_OFFER' && !isInitiatorRef.current && pc) {
-          // El receptor recibe la oferta del llamador
-          console.log('[WebRTC] 📩 Recibida WEBRTC_OFFER')
-          await pc.setRemoteDescription(new RTCSessionDescription(data.offer))
-
-          // Vaciar cola de candidatos pendientes
-          while (iceQueueRef.current.length > 0) {
-            const cand = iceQueueRef.current.shift()
-            await pc.addIceCandidate(new RTCIceCandidate(cand))
-          }
-
-          // Generar y enviar Answer
-          const answer = await pc.createAnswer()
-          await pc.setLocalDescription(answer)
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'WEBRTC_ANSWER',
-              callId: activeCall.callId,
-              answer
-            }))
+        if (data.type === 'WEBRTC_OFFER' && !isInitiatorRef.current) {
+          if (pc) {
+            await handleOfferSDP(pc, data.offer)
+          } else {
+            console.log('[WebRTC] ⏳ Guardando oferta SDP en espera de hardware móvil...')
+            pendingOfferRef.current = data.offer
           }
         } else if (data.type === 'WEBRTC_ANSWER' && isInitiatorRef.current && pc) {
           // El llamador recibe la respuesta del receptor
@@ -327,12 +370,20 @@ export default function CallModal() {
           // Vaciar cola de candidatos pendientes
           while (iceQueueRef.current.length > 0) {
             const cand = iceQueueRef.current.shift()
-            await pc.addIceCandidate(new RTCIceCandidate(cand))
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand))
+            } catch (iceErr) {
+              console.warn('[WebRTC] Candidato en cola ignorado:', iceErr)
+            }
           }
-        } else if (data.type === 'WEBRTC_ICE_CANDIDATE' && data.candidate && pc) {
+        } else if (data.type === 'WEBRTC_ICE_CANDIDATE' && data.candidate) {
           // Candidato de red ICE
-          if (pc.remoteDescription && pc.remoteDescription.type) {
-            await pc.addIceCandidate(new RTCIceCandidate(data.candidate))
+          if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(data.candidate))
+            } catch (iceErr) {
+              console.warn('[WebRTC] Error candidate:', iceErr)
+            }
           } else {
             iceQueueRef.current.push(data.candidate)
           }

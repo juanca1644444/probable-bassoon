@@ -254,7 +254,10 @@ function initDatabase() {
   `);
 
   const count = db.prepare('SELECT COUNT(*) as c FROM contacts').get();
-  if (count.c > 0) return;
+  if (count.c > 0) {
+    ensurePrivateNetworkContacts(db);
+    return;
+  }
 
   console.log('🌱 Seeding database...');
   const now = Date.now();
@@ -343,7 +346,38 @@ function initDatabase() {
   [['theme','dark'],['notifications','true'],['enterToSend','true'],['fontSize','14'],['language','es'],['aiSummaryEnabled','true']]
     .forEach(([k,v]) => isetting.run(k,v));
 
+  ensurePrivateNetworkContacts(db);
   console.log('✅ Database seeded!');
+}
+
+function ensurePrivateNetworkContacts(db) {
+  try {
+    const now = Date.now();
+    const contacts = [
+      { id: 'c_andre', name: 'Andre', phone: '+51 987 654 321', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Andre&backgroundColor=d1d4f9', status: 'Disponible · Red Móvil CHASKY', chatId: 'chat_andre' },
+      { id: 'c_daniella', name: 'Daniella Rivera', phone: '+51 991 223 344', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Daniella&backgroundColor=ffd5dc', status: 'En reunión · Ventas', chatId: 'chat_daniella' },
+      { id: 'c_carolina', name: 'Carolina', phone: '+51 992 334 455', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carolina&backgroundColor=b6e3f4', status: 'En ruta · Logística', chatId: 'chat_carolina' },
+      { id: 'c_hilda', name: 'Hilda', phone: '+51 993 445 566', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Hilda&backgroundColor=c0aede', status: 'Facturación y Finanzas', chatId: 'chat_hilda' },
+      { id: 'c_uchy', name: 'Uchy', phone: '+51 994 556 677', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Uchy&backgroundColor=aaffaa', status: 'Operaciones activas', chatId: 'chat_uchy' }
+    ];
+
+    const insContact = db.prepare(`
+      INSERT OR IGNORE INTO contacts (id, name, phone, avatar, status, isOnline, lastSeen, createdAt)
+      VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+    `);
+
+    const insChat = db.prepare(`
+      INSERT OR IGNORE INTO chats (id, contactId, type, groupName, groupAvatar, lastMessage, lastMessageTime, unreadCount, isPinned, isMuted, isArchived, createdAt, channel, status)
+      VALUES (?, ?, 'individual', null, null, 'Conectado a la Red Privada CHASKYAPP 🌐', ?, 0, 0, 0, 0, ?, 'whatsapp', 'open')
+    `);
+
+    contacts.forEach(c => {
+      insContact.run(c.id, c.name, c.phone, c.avatar, c.status, now, now);
+      insChat.run(c.chatId, c.id, now, now);
+    });
+  } catch (err) {
+    console.warn('ensurePrivateNetworkContacts error:', err.message);
+  }
 }
 
 module.exports = { getDb, initDatabase, DB_PATH };
