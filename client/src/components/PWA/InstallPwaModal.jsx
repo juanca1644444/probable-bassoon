@@ -136,11 +136,11 @@ export default function InstallPwaModal({ onClose }) {
             /* Android y Escritorio */
             <div className="py-4 space-y-4">
               {/* Instrucciones visuales paso a paso para Android */}
-              <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl text-xs space-y-2.5">
+              <div className="p-3.5 bg-emerald-950/60 border border-emerald-500/40 rounded-2xl text-xs space-y-2.5">
                 <p className="font-bold text-emerald-300 flex items-center gap-1.5 text-sm">
                   <span>🤖</span> Instalación en Android (Chrome / Samsung / Edge):
                 </p>
-                <ol className="list-decimal list-inside space-y-2 text-wa-secondary leading-relaxed pl-1 text-xs">
+                <ol className="list-decimal list-inside space-y-2 text-gray-200 leading-relaxed pl-1 text-xs font-medium">
                   <li>
                     En la barra superior de tu navegador, toca los <strong className="text-emerald-400 font-bold">tres puntos (⋮)</strong>.
                   </li>
@@ -153,19 +153,29 @@ export default function InstallPwaModal({ onClose }) {
                 </ol>
               </div>
 
+              {/* Guía rápida si es iPhone */}
+              <div className="p-3 bg-sky-950/40 border border-sky-500/30 rounded-2xl text-xs space-y-2">
+                <p className="font-bold text-sky-300 flex items-center gap-1.5 text-xs">
+                  <span>🍎</span> ¿Usas iPhone o iPad (Safari)?:
+                </p>
+                <p className="text-gray-300 text-[11px] leading-relaxed">
+                  Toca el botón <strong className="text-sky-400">Compartir ⎋</strong> abajo en Safari y luego selecciona <strong className="text-emerald-400">"Agregar a pantalla de inicio ⊞"</strong>.
+                </p>
+              </div>
+
               <div className="space-y-2 text-xs text-wa-secondary leading-relaxed">
                 <div className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold text-sm">⚡</span>
                   <div>
                     <strong className="text-wa-text block font-semibold">Modo Nativo de Pantalla Completa</strong>
-                    <span>Sin barras de URL ni distracciones del navegador, con acceso offline permanente.</span>
+                    <span className="text-gray-300">Sin barras de URL ni marcos de navegador, con soporte offline.</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold text-sm">📳</span>
                   <div>
                     <strong className="text-wa-text block font-semibold">Videollamadas y Notificaciones P2P</strong>
-                    <span>WebRTC con tono de llamada y audio bidireccional optimizado para móviles.</span>
+                    <span className="text-gray-300">WebRTC con tono de llamada y audio bidireccional optimizado.</span>
                   </div>
                 </div>
               </div>
@@ -184,7 +194,7 @@ export default function InstallPwaModal({ onClose }) {
                   className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-sm transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2"
                 >
                   <span>👍</span>
-                  <span>Entendido, lo agregaré desde el menú ⋮</span>
+                  <span>Entendido, seguiré los pasos</span>
                 </button>
               )}
 
