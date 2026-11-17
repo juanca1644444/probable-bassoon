@@ -222,9 +222,10 @@ function AppShell() {
               });
             }
           } else if (data.type === 'START_CALL') {
-            const myId = store.currentUser?.id || 'agent-me';
-            const isCallFromMe = data.callerId === myId || (data.callerId === 'me' && (myId === 'agent-me' || myId === 'me'));
-            if (!isCallFromMe) {
+            // El servidor WebSocket ya excluye al cliente emisor (id !== clientId).
+            // Este dispositivo debe sonar si no es el emisor de la llamada saliente activa:
+            const amICallingOut = store.activeCall && !store.activeCall.isIncoming;
+            if (!amICallingOut) {
               store.receiveCall(data);
               window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
             }

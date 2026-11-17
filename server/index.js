@@ -65,6 +65,9 @@ wss.on('connection', (ws) => {
         data.type === 'reaction' ||
         callTypes.includes(data.type)
       ) {
+        if (callTypes.includes(data.type)) {
+          console.log(`📞 [Call Signaling] ${data.type} broadcast from ${clientId} to other clients`);
+        }
         clients.forEach((client, id) => {
           if (id !== clientId && client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(data));
