@@ -8,6 +8,8 @@ node_modules/
 dist/
 build/
 client/dist/
+client/dev-dist/
+dev-dist/
 
 # Uploads & media
 server/uploads/

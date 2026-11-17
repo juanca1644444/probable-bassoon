@@ -135,40 +135,61 @@ export default function InstallPwaModal({ onClose }) {
           ) : (
             /* Android y Escritorio */
             <div className="py-4 space-y-4">
-              <div className="space-y-2.5 text-xs text-wa-secondary leading-relaxed">
+              {/* Instrucciones visuales paso a paso para Android */}
+              <div className="p-3.5 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl text-xs space-y-2.5">
+                <p className="font-bold text-emerald-300 flex items-center gap-1.5 text-sm">
+                  <span>🤖</span> Instalación en Android (Chrome / Samsung / Edge):
+                </p>
+                <ol className="list-decimal list-inside space-y-2 text-wa-secondary leading-relaxed pl-1 text-xs">
+                  <li>
+                    En la barra superior de tu navegador, toca los <strong className="text-emerald-400 font-bold">tres puntos (⋮)</strong>.
+                  </li>
+                  <li>
+                    Toca en <strong className="text-emerald-400 font-bold">"Agregar a la pantalla principal"</strong> o <strong className="text-emerald-400 font-bold">"Instalar app"</strong>.
+                  </li>
+                  <li>
+                    Confirma en <strong className="text-emerald-400 font-bold">"Instalar"</strong> y CHASKYAPP aparecerá con su propio ícono en tu teléfono.
+                  </li>
+                </ol>
+              </div>
+
+              <div className="space-y-2 text-xs text-wa-secondary leading-relaxed">
                 <div className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold text-sm">⚡</span>
                   <div>
-                    <strong className="text-wa-text block font-semibold">Rendimiento Nativo Ultrarrápido</strong>
-                    <span>Carga al instante sin esperas y funciona incluso cuando no haya señal de internet gracias a su base de datos local SQLite/IndexedDB.</span>
+                    <strong className="text-wa-text block font-semibold">Modo Nativo de Pantalla Completa</strong>
+                    <span>Sin barras de URL ni distracciones del navegador, con acceso offline permanente.</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold text-sm">📳</span>
                   <div>
-                    <strong className="text-wa-text block font-semibold">Videollamadas y Notas de Voz P2P</strong>
-                    <span>Acceso de hardware optimizado para micrófono, cámara y altavoz con notificaciones sonoras.</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <span className="text-emerald-400 font-bold text-sm">🔒</span>
-                  <div>
-                    <strong className="text-wa-text block font-semibold">Acceso con 1 Toque y Bloqueo Seguro</strong>
-                    <span>Icono en tu pantalla de inicio con soporte de PIN de seguridad.</span>
+                    <strong className="text-wa-text block font-semibold">Videollamadas y Notificaciones P2P</strong>
+                    <span>WebRTC con tono de llamada y audio bidireccional optimizado para móviles.</span>
                   </div>
                 </div>
               </div>
 
-              <button
-                onClick={handleInstall}
-                className="w-full py-3 rounded-2xl bg-wa-green hover:bg-emerald-600 active:scale-95 text-white font-bold text-sm transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2"
-              >
-                <span>📲</span>
-                <span>Instalar Ahora en este Dispositivo</span>
-              </button>
+              {(deferredPrompt || window.__chasky_install_prompt) ? (
+                <button
+                  onClick={handleInstall}
+                  className="w-full py-3 rounded-2xl bg-wa-green hover:bg-emerald-600 active:scale-95 text-white font-bold text-sm transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2"
+                >
+                  <span>📲</span>
+                  <span>Instalar con 1 Toque</span>
+                </button>
+              ) : (
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-sm transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2"
+                >
+                  <span>👍</span>
+                  <span>Entendido, lo agregaré desde el menú ⋮</span>
+                </button>
+              )}
 
               <p className="text-[10px] text-center text-wa-secondary/80">
-                Compatible con Google Chrome, Microsoft Edge, Brave, Samsung Internet y navegadores Android.
+                100% Privado y Seguro · Funciona en cualquier teléfono Android o iPhone
               </p>
             </div>
           )}

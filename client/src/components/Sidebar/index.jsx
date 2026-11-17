@@ -443,10 +443,20 @@ export default function Sidebar() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Botón directo de Instalar PWA visible en móvil y desktop */}
+              <button
+                onClick={() => setShowInstallPwaModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 text-xs font-bold transition shadow-sm animate-pulse flex-shrink-0"
+                title="Instalar CHASKYAPP en tu teléfono"
+              >
+                <span>📲</span>
+                <span className="hidden xs:inline">Instalar App</span>
+              </button>
+
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon"
+                className="hidden md:inline-flex p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon"
                 title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
               >
                 {theme === 'dark' ? (
@@ -461,7 +471,7 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={() => setActiveFilter(activeFilter === 'status' ? 'all' : 'status')}
-                className={`p-2 rounded-full transition-colors ${
+                className={`hidden md:inline-flex p-2 rounded-full transition-colors ${
                   activeFilter === 'status'
                     ? 'bg-wa-green/20 text-wa-green'
                     : 'hover:bg-white/10 text-wa-icon hover:text-wa-green'
@@ -475,7 +485,7 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={() => setShowAnalytics(true)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon hover:text-emerald-400"
+                className="hidden lg:inline-flex p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon hover:text-emerald-400"
                 title="Analíticas de Negocio"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -484,7 +494,7 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={() => setShowKanban(true)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon hover:text-emerald-400"
+                className="hidden xl:inline-flex p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon hover:text-emerald-400"
                 title="CRM Pipeline Kanban"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -493,7 +503,7 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={() => setShowNewChat(true)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon"
+                className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon flex-shrink-0"
                 title="Nuevo chat"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -502,7 +512,7 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={() => setLocked(true)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon hover:text-amber-400"
+                className="hidden md:inline-flex p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon hover:text-amber-400"
                 title="Bloquear pantalla (PIN de Seguridad)"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -512,7 +522,7 @@ export default function Sidebar() {
                 </svg>
               </button>
 
-              {/* Offline / Online Network Simulator Pills (visibles en desktop y ocultos en móvil para optimizar espacio) */}
+              {/* Offline / Online Network Simulator Pills (desktop) */}
               <div className="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                 <button
                   data-testid="sim-offline"
@@ -532,10 +542,12 @@ export default function Sidebar() {
                 </button>
               </div>
 
-              <div className="relative">
+              {/* Menú de Tres Puntos (Siempre visible y protegido contra overflow) */}
+              <div className="relative flex-shrink-0">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
-                  className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon"
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon flex-shrink-0"
+                  title="Menú de opciones"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
@@ -768,7 +780,7 @@ export default function Sidebar() {
               </div>
               <button
                 onClick={() => setSidebarCollapsed(true)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon"
+                className="hidden md:inline-flex p-2 rounded-full hover:bg-white/10 transition-colors text-wa-icon"
                 title="Colapsar"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -787,6 +799,25 @@ export default function Sidebar() {
             </svg>
           </button>
         )}
+      </div>
+
+      {/* Mobile PWA Install Announcement Banner */}
+      <div className="sm:hidden px-3.5 py-2.5 bg-gradient-to-r from-emerald-950 via-teal-950 to-emerald-950 border-b border-emerald-500/40 flex items-center justify-between gap-2 shadow-md flex-shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-lg flex-shrink-0 shadow-inner">
+            📲
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-emerald-300 leading-tight">Instalar App Móvil</p>
+            <p className="text-[10px] text-gray-300 truncate">Toca aquí para agregar a tu pantalla de inicio</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowInstallPwaModal(true)}
+          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl text-xs shadow-md transition-all flex-shrink-0"
+        >
+          Instalar
+        </button>
       </div>
 
       {!sidebarCollapsed && (
