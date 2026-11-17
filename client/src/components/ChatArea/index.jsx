@@ -1,5 +1,5 @@
 // src/components/ChatArea/index.jsx — Main chat view
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import useAppStore from '../../store/useAppStore'
 import { fetchMessages, sendMessage, uploadFile } from '../../utils/api'
 import { sendOfflineFirstMessage } from '../../services/syncManager'
