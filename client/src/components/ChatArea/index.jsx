@@ -1340,7 +1340,7 @@ export default function ChatArea() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <button onClick={toggleRightPanel} className="flex items-center gap-2.5 sm:gap-3 flex-1 text-left hover:opacity-80 transition-opacity min-w-0">
+        <div role="button" tabIndex={0} onClick={toggleRightPanel} className="flex items-center gap-2.5 sm:gap-3 flex-1 text-left hover:opacity-80 transition-opacity min-w-0 cursor-pointer">
           <div className="relative flex-shrink-0">
             <img src={chatAvatar} alt={chatName} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover" />
             {isOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-wa-green rounded-full border-2 border-wa-header" />}
@@ -1374,7 +1374,7 @@ export default function ChatArea() {
               )}
             </p>
           </div>
-        </button>
+        </div>
 
         {/* Header actions */}
         <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
