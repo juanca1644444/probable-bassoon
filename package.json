@@ -1,12 +1,15 @@
 {
-  "name": "whatsapp-pro",
+  "name": "chaskyapp",
   "version": "1.0.0",
-  "description": "WhatsApp Pro / Vuelo — Advanced messaging app",
+  "description": "CHASKYAPP — Red Privada de Mensajería Omnicanal con IA Local, Videollamadas WebRTC P2P y PWA Offline",
   "scripts": {
     "dev": "concurrently -n SERVER,CLIENT -c green,blue \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && node index.js",
     "dev:client": "cd client && npx vite --host 0.0.0.0 --port 5173",
     "dev:lan": "concurrently -n SERVER,CLIENT -c green,blue \"cd server && node index.js\" \"cd client && npx vite --host 0.0.0.0 --port 5173\"",
+    "build": "cd client && npm run build",
+    "test": "node server/scripts/test_phase3_suite.js",
+    "audit": "cd server && node comprehensive_health_audit.js",
     "install:all": "cd server && npm install && cd ../client && npm install"
   },
   "devDependencies": {

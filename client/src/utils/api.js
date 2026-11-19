@@ -8,8 +8,6 @@ const envBackend = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undef
 let dynamicBaseURL = '/api';
 if (envBackend) {
   dynamicBaseURL = envBackend.endsWith('/api') ? envBackend : `${envBackend.replace(/\/$/, '')}/api`;
-} else if (isDev) {
-  dynamicBaseURL = `http://${host}:3001/api`;
 }
 
 const api = axios.create({

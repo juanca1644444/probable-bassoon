@@ -87,6 +87,18 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-markdown': ['react-markdown', 'remark-gfm']
+        }
+      }
+    }
+  },
   server: {
     host: '0.0.0.0', // Escuchar en todas las interfaces de red para pruebas multi-dispositivo en LAN
     port: 5173,

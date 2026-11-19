@@ -16,13 +16,12 @@ export function getWsUrl() {
     return base.endsWith('/ws') ? base : `${base}/ws`;
   }
 
-  // 3. Entorno de desarrollo local / LAN móvil
-  const hostname = window.location.hostname || 'localhost';
+  // 3. Entorno de desarrollo local / LAN móvil (Single-Port Proxy en Vite)
   const isDevPort = window.location.port === '5173' || window.location.port === '3000';
   if (isDevPort) {
     const isHttps = window.location.protocol === 'https:';
     const wsProtocol = isHttps ? 'wss:' : 'ws:';
-    return `${wsProtocol}//${hostname}:3001`;
+    return `${wsProtocol}//${window.location.host}/ws`;
   }
 
   // 4. Producción en Vercel -> Conexión directa al backend en Render

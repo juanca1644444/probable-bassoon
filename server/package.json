@@ -1,12 +1,14 @@
 {
-  "name": "whatsapp-pro-server",
+  "name": "chaskyapp-server",
   "version": "1.0.0",
-  "description": "WhatsApp Pro Backend - Node.js + Express + SQLite + WebSocket",
+  "description": "CHASKYAPP Backend — Node.js + Express + SQLite + WebSockets + WebRTC Signaling + RAG",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "test": "node scripts/test_phase3_suite.js",
+    "audit": "node comprehensive_health_audit.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc14",

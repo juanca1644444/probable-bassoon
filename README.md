@@ -1,370 +1,93 @@
-# WhatsApp Pro / Vuelo 🚀
+# CHASKYAPP 🌐 — Suite de Mensajería Omnicanal y Red Privada Autónoma
 
-> **Advanced messaging app** inspired by deep REA (Reverse Engineering & Analysis) of WhatsApp Desktop v2.2134.10
-
----
-
-## 📋 REA Analysis Findings
-
-### Target: WhatsApp Desktop 2.2134.10 (Electron / Windows x64)
-
-This project was designed based on a thorough analysis of WhatsApp Desktop's runtime artifacts.
-
-#### Artifact Sources Analyzed
-
-| Artifact | Location | Findings |
-|----------|----------|----------|
-| `main-process.log` | `AppData\Roaming\WhatsApp\` | Full lifecycle event sequence |
-| `settings.json` | `AppData\Roaming\WhatsApp\` | App config schema v6 |
-| `Databases.db` | `AppData\Roaming\WhatsApp\databases\` | Chromium WebSQL registry (mmap_status v2) |
-| `Local Storage / leveldb` | `AppData\Roaming\WhatsApp\Local Storage\` | LevelDB key-value store (session tokens, prefs) |
-| `IndexedDB / leveldb` | `AppData\Roaming\WhatsApp\IndexedDB\` | Primary message/chat store |
-| `Service Worker Cache` | `AppData\Roaming\WhatsApp\Service Worker\` | Offline asset cache for web.whatsapp.com |
-| `Preferences` | `AppData\Roaming\WhatsApp\` | Chromium session preferences |
-| Running Process | PID 10844 `WhatsApp.Root` | Active at analysis time, 253 MB RAM |
-
-#### Main Process Lifecycle (from logs — 2021-10-22T12:43:55Z)
-
-```
-WhatsApp Desktop 2.2134.10 Ready
-→ Update from https://web.whatsapp.com/desktop/windows/release/x64?version=2.2134.10
-→ windowState: { isMaximized: true, x: -8, y: -8, width: 1296, height: 696 }
-→ WindowManager:setWindow()
-→ WindowManager:createMenu()
-→ Auto updater: checking for update  [5s delay]
-→ Auto updater: update available → v2.2140.7
-→ Setting Locale: es
-→ VoipWindowManager:constructor()
-→ VoipWindowManager:_createPanel()           [secondary BrowserWindow]
-→ WindowManager:setVoipWindowManager()
-→ WindowManager:createMenu()  →  destroyMenu()
-→ device-manager: refresh device list returned: 3
-→ VoipWindowManager:_createPanel() ready, took: 3210ms
-→ VoipWindowManager:init()
-→ App closed → destroyMenu() → VoipWindowManager:destructor() → cleanup() → _destroyPanel()
-```
-
-#### SQLite `Databases.db` Schema (Chromium WebSQL Registry)
-
-```
-TABLE meta:      { key: LONGVARCHAR PK, value: LONGVARCHAR }
-TABLE Databases: { id: INTEGER PK, origin: TEXT, name: TEXT, description: TEXT, estimated_size: INTEGER }
-```
-- **Data**: meta rows = `mmap_status=-1`, `version=2`, `last_compatible_version=1`
-- **Databases table is EMPTY** → WhatsApp does not use WebSQL for messages; it uses IndexedDB (LevelDB)
-
-#### Settings Schema (`settings.json` v6)
-```json
-{
-  "version": 6,
-  "hasLoaded": true,
-  "windowState": { "isMaximized": true, "width": 1296, "height": 696 },
-  "contentSettings": { "textsize": 0 }
-}
-```
-
-#### Squirrel Auto-Updater Pattern
-- Update URL: `https://web.whatsapp.com/desktop/windows/release/x64?version={current}`
-- Check on startup + every 7200s (2 hours)
-- Downloads silently, installs on next restart
-- Uses `SingleGlobalInstance` lock (Squirrel .NET) — prevents concurrent update locks
+> **Red Privada de Comunicación Empresarial e Institucional** con IA Local (RAG), Videollamadas WebRTC P2P de Alta Disponibilidad, Arquitectura PWA Offline-First y Single-Port Proxy.
 
 ---
 
-## 🏗️ WhatsApp Architecture (Extracted)
+## 🚀 Características Principales
 
-### Process Architecture
+* **🔒 Red Privada y Cerrada:** Comunicación 100% autónoma y segura entre usuarios registrados sin depender de servidores o números de terceros.
+* **📞 Llamadas y Videollamadas WebRTC P2P:**
+  * Soporte cross-operator (funciona en 4G/5G y Wi-Fi de diferentes operadores).
+  * Servidores STUN de Google y relés TURN dedicados en puerto 443 (UDP/TCP) para atravesar firewalls corporativos y CGNAT móvil.
+  * Acumulación persistente de pistas de audio y video con controles en pantalla y PiP (Picture-in-Picture).
+* **📱 Progressive Web App (PWA):**
+  * Instalable con 1 toque en Android e iOS como app nativa (`display: standalone`).
+  * Service Worker con precaching automático de assets y soporte de cola de sincronización offline con IndexedDB.
+* **🧠 Inteligencia Artificial y RAG Local:**
+  * Motor semántico vectorial integrado (`ragEngine.js`) para asistencia y generación de respuestas contextuales.
+  * Handoff inteligente de chatbot hacia operador humano.
+* **⚡ Single-Port Proxy (Desarrollo y LAN):**
+  * Vite (`:5173`) actúa como proxy inverso transparente para la API REST (`/api`), archivos adjuntos (`/uploads`) y WebSockets (`/ws`) hacia el backend (`:3001`). No requiere abrir múltiples puertos en el firewall local.
+* **☁️ Despliegue en la Nube:**
+  * **Frontend (Vercel):** [https://client-teal-eta-82.vercel.app](https://client-teal-eta-82.vercel.app)
+  * **Backend (Render):** `https://probable-bassoon-wk5u.onrender.com` (WebSockets en `/ws`)
+
+---
+
+## 🛠️ Comandos Rápidos
+
+| Comando | Acción |
+| :--- | :--- |
+| `npm run dev` | Inicia de forma concurrente el backend (`:3001`) y el frontend (`:5173`). |
+| `npm run dev:server` | Inicia únicamente el servidor Node.js/Express (`server/index.js`). |
+| `npm run dev:client` | Inicia el frontend Vite escuchando en todas las interfaces (`0.0.0.0:5173`). |
+| `npm test` | Ejecuta la suite de pruebas automatizadas de 20 casos (`test_phase3_suite.js`). |
+| `npm run audit` | Ejecuta la auditoría integral de salud y esquema SQLite (`comprehensive_health_audit.js`). |
+| `npm run build` | Compila el cliente frontend optimizando bundles y assets precacheados. |
+
+---
+
+## 📋 Guía de Pruebas Móviles y Multi-Dispositivo
+
+Para realizar pruebas completas de campo entre una PC y un smartphone (o entre dos teléfonos móviles):
+
+### Opción 1: Pruebas Móviles en Red Local (LAN Wi-Fi)
+1. Inicia la aplicación en la máquina anfitrión:
+   ```bash
+   npm run dev
+   ```
+2. Desde el navegador del teléfono móvil (en la misma red Wi-Fi), abre:
+   ```text
+   http://192.168.1.9:5173
+   ```
+3. Gracias al **Single-Port Proxy**, todo el tráfico REST y WebSocket fluye por el puerto `5173` sin requerir abrir el puerto `3001`.
+
+### Opción 2: Pruebas Móviles Reales (Diferentes Operadores 4G/5G y PWA)
+Por especificación de seguridad web (W3C/RFC), los navegadores móviles requieren **HTTPS** para acceder a la cámara, micrófono e instalar la PWA de forma nativa:
+1. Abre en Chrome (Android) o Safari (iOS) la URL de producción segura:
+   👉 **https://client-teal-eta-82.vercel.app**
+2. Pulsa el botón de opciones del navegador y selecciona **"Instalar aplicación"** o **"Agregar a la pantalla principal"**.
+3. Realiza llamadas o videollamadas entre dispositivos con total interoperabilidad de audio y video.
+
+---
+
+## 🏗️ Arquitectura del Sistema
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   Electron Main Process                       │
-│                                                               │
-│  ┌──────────────────────┐  ┌────────────────────────────┐   │
-│  │    WindowManager      │  │   VoipWindowManager         │   │
-│  │  - setWindow()        │  │  - constructor()            │   │
-│  │  - createMenu()       │  │  - _createPanel()           │   │
-│  │  - destroyMenu()      │  │  - init() / cleanup()       │   │
-│  │  - setVoipWindowMgr() │  │  - _destroyPanel()          │   │
-│  └──────────────────────┘  └────────────────────────────┘   │
-│                                                               │
-│  ┌──────────────────┐  ┌──────────────┐  ┌───────────────┐  │
-│  │  Squirrel Auto-  │  │ Device Mgr   │  │  IPC Bridge   │  │
-│  │  Updater         │  │ (3 devices)  │  │  (ipcMain)    │  │
-│  └──────────────────┘  └──────────────┘  └───────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-              │ BrowserWindow.loadURL()
-              ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Renderer Process — web.whatsapp.com              │
-│                                                               │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │                  3-Panel Layout                         │  │
-│  │  ┌──────────────┐ ┌─────────────────┐ ┌─────────────┐ │  │
-│  │  │   Sidebar    │ │   Chat Panel    │ │ Right Panel │ │  │
-│  │  │   (30% w)    │ │    (70% w)      │ │  (overlay)  │ │  │
-│  │  │              │ │                 │ │             │ │  │
-│  │  │ - Chat list  │ │ - MessageList   │ │ - Contact   │ │  │
-│  │  │ - Search     │ │ - MessageInput  │ │   info      │ │  │
-│  │  │ - Archive    │ │ - Header        │ │ - Media gal │ │  │
-│  │  │ - New chat   │ │ - TypingInd.    │ │ - Group mbr │ │  │
-│  │  └──────────────┘ └─────────────────┘ └─────────────┘ │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  Data Store: IndexedDB (LevelDB)                              │
-│  Service Worker: Offline cache for web.whatsapp.com assets    │
-│  Local Storage: Session tokens, UI preferences                │
-└─────────────────────────────────────────────────────────────┘
-              │ Secondary BrowserWindow
-              ▼
-┌─────────────────────────┐
-│   VoIP Panel            │
-│  (3210ms init time)     │
-│  Separate window, lazy  │
-└─────────────────────────┘
-```
-
-### Data Models (Reverse-Engineered)
-
-#### Message Model
-```typescript
-interface Message {
-  id:        string;    // unique message ID
-  chatId:    string;    // parent chat ID
-  fromMe:    boolean;   // sent by current user
-  type:      "chat" | "image" | "video" | "audio" | "document" | "sticker" | "location";
-  body:      string;    // text content
-  timestamp: number;    // Unix epoch seconds
-  ack:       0 | 1 | 2 | 3 | 4;  // sent/delivered/read ticks
-  hasMedia:  boolean;
-  replyTo?:  string;    // quoted message ID
-}
-```
-
-#### Chat Model
-```typescript
-interface Chat {
-  id:          string;   // phone@s.whatsapp.net or group@g.us
-  name:        string;
-  lastMessage: string;
-  t:           number;   // last message timestamp
-  unreadCount: number;
-  archived:    boolean;
-  pinned:      boolean;
-  muted:       boolean;
-  isGroup:     boolean;
-}
-```
-
-#### ACK States
-| Value | Meaning | UI |
-|-------|---------|-----|
-| 0 | Pending | Clock ⏱ |
-| 1 | Sent | ✓ |
-| 2 | Delivered | ✓✓ |
-| 3 | Read | ✓✓ (blue) |
-| 4 | Played (audio) | ▶ (blue) |
-
-### IPC Pattern
-```
-Renderer → ipcRenderer.send("wa-event", payload)
-Main     → ipcMain.on("wa-event", handler)
-Main     → win.webContents.send("wa-push", data)
+[Dispositivo Móvil / Laptop]
+             │
+             │ HTTPS / WSS
+             ▼
+[Vite Frontend (:5173)] ──(Proxy /api, /ws)──► [Node.js + Express Backend (:3001)]
+       │                                                      │
+       ├─► PWA (Service Worker + IndexedDB)                   ├─► SQLite WAL (whatsapp_pro.db)
+       └─► WebRTC Audio/Video (STUN/TURN 443)                 ├─► WebSocket Engine (ws)
+                                                              └─► Motor RAG Local
 ```
 
 ---
 
-## ✨ WhatsApp Pro Features
+## 🏛️ Antecedentes Técnicos e Históricos (REA Foundations)
 
-### Core Messaging
-- 💬 Real-time messaging via WebSocket
-- 📎 File/image attachments (drag-and-drop)
-- 😊 Emoji picker with reaction support
-- 💬 Reply-to-message with preview
-- ✓✓ Message status ticks (sent/delivered/read)
-- ⌨️ Typing indicators (animated dots)
-- 🔍 Chat & message search
-- 📌 Pin chats to top
-- 🔇 Mute notifications per chat
-- 🗂️ Archive chats
+El diseño modular de este proyecto se originó a partir de un análisis de ingeniería inversa (Reverse Engineering & Analysis) de artefactos de WhatsApp Desktop v2.2134.10:
 
-### Group Features
-- 👥 Group chats with member list
-- 🖼️ Group avatars and names
-- 👑 Group admin roles
-
-### UI/UX
-- 🌙 Dark mode (WhatsApp-style dark theme)
-- 📐 3-panel responsive layout (30/70 sidebar/chat)
-- 🖼️ Media gallery (photos, videos, files, audio)
-- 📱 Markdown message rendering
-- 💻 Code block syntax highlighting
-- 🤖 AI Chat Summary (POST /api/ai-summary/:chatId)
-- 🌐 Spanish locale (es) — matching original
-
-### Technical
-- ⚡ Vite + React 18 (HMR dev server)
-- 🗄️ SQLite persistence (better-sqlite3)
-- 🔌 WebSocket real-time layer (ws)
-- 📁 File uploads (multer)
-- 🗃️ Zustand state management
+* **Gestión de Estados:** Patrón de arquitectura desacoplada para gestión de ventanas y paneles auxiliares.
+* **Modelo Offline-First:** Persistencia local estructurada con cola outbox para reintento de entrega al reconectar.
+* **Cifrado y Transporte:** Adopción de WebRTC para streaming punto a punto y WebSockets para señalización determinista.
 
 ---
 
-## 🚀 Setup Instructions
+## 📄 Licencia
 
-### Prerequisites
-- Node.js 18+ 
-- npm 9+
-
-### Installation
-
-```bash
-# Clone or navigate to project
-cd whatsapp-pro
-
-# Install root dev dependencies
-npm install
-
-# Install all workspace dependencies
-npm run install:all
-```
-
-### Development
-
-```bash
-# Start both server + client concurrently
-npm run dev
-```
-
-This runs:
-- **Backend**: `http://localhost:3001` (Express + WebSocket + SQLite)
-- **Frontend**: `http://localhost:5173` (Vite + React)
-
-### Manual Start
-
-```bash
-# Terminal 1 — Backend
-cd server && node index.js
-
-# Terminal 2 — Frontend
-cd client && npx vite --host
-```
-
----
-
-## 📡 API Documentation
-
-### Chats
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/chats` | List all chats (sorted by last message time) |
-| POST | `/api/chats` | Create new chat |
-
-### Messages
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/messages/:chatId` | Get messages for a chat |
-| POST | `/api/messages/:chatId` | Send a new message |
-
-### Contacts
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/contacts` | List all contacts |
-| POST | `/api/contacts` | Create a contact |
-
-### Files
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/upload` | Upload a file (multipart/form-data) |
-| GET | `/uploads/:filename` | Serve uploaded file |
-
-### Settings
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/settings` | Get all settings |
-| PUT | `/api/settings` | Update a setting |
-
-### AI
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/ai-summary/:chatId` | Generate AI summary of chat |
-
-### WebSocket Events
-
-| Event | Direction | Payload |
-|-------|-----------|---------|
-| `typing` | Client → Server | `{ chatId, userId, isTyping }` |
-| `message` | Server → Client | `{ type: "new_message", message }` |
-| `typing_indicator` | Server → Client | `{ chatId, userId, isTyping }` |
-
----
-
-## 🗂️ Project Structure
-
-```
-whatsapp-pro/
-├── package.json              ← Root scripts (concurrently)
-├── .gitignore
-├── README.md
-│
-├── server/                   ← Node.js + Express + SQLite backend
-│   ├── package.json
-│   ├── index.js              ← Main server entry (Express + WS)
-│   ├── database.js           ← SQLite schema + seed data
-│   └── routes/
-│       ├── chats.js
-│       ├── messages.js
-│       ├── contacts.js
-│       └── files.js
-│
-└── client/                   ← React + Vite + Tailwind frontend
-    ├── package.json
-    ├── vite.config.js
-    ├── tailwind.config.js
-    ├── index.html
-    └── src/
-        ├── main.jsx
-        ├── App.jsx
-        ├── store/
-        │   └── useStore.js
-        ├── components/
-        │   ├── Sidebar/
-        │   ├── ChatPanel/
-        │   ├── RightPanel/
-        │   ├── AIAssistant/
-        │   └── EmptyState/
-        ├── hooks/
-        │   └── useWebSocket.js
-        └── utils/
-            ├── api.js
-            └── formatters.js
-```
-
----
-
-## 🔬 Design Patterns Applied from REA
-
-| WhatsApp Pattern | Implementation in WhatsApp Pro |
-|-----------------|-------------------------------|
-| WindowManager singleton | Zustand store singleton |
-| VoipWindowManager lazy init | RightPanel lazy-mounted on demand |
-| Squirrel update URL pattern | `/api/settings` version polling |
-| `setWindow()` → `createMenu()` sequence | App.jsx init → sidebar render sequence |
-| Locale: `es` from main process | Spanish sample data throughout |
-| IndexedDB (LevelDB) for messages | SQLite via better-sqlite3 |
-| Service Worker offline cache | Vite PWA-ready build config |
-| ACK states 0–4 | Message status: pending/sent/delivered/read |
-| 3-panel 30%/70% layout | Sidebar flex-shrink-0 / Chat flex-1 CSS |
-| `device-manager: 3 devices` | Multi-device session support stub |
-
----
-
-## 📄 License
-
-MIT — Built for educational purposes via reverse engineering analysis.
+MIT — CHASKYAPP Enterprise Messaging Suite.

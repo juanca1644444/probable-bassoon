@@ -20,8 +20,14 @@ server/uploads/
 
 # Database
 server/*.db
+server/*.db-wal
+server/*.db-shm
+server/*.db-*
 server/*.sqlite
 server/*.sqlite3
+*.db-wal
+*.db-shm
+*.db-*
 
 # WhatsApp Baileys Sessions
 server/sessions/

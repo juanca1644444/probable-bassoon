@@ -23,10 +23,6 @@ if (typeof window !== 'undefined') {
       // 2. Route to production backend on Render when deployed on Vercel
       if (envBackend && (resource.startsWith('/api') || resource.startsWith('/uploads'))) {
         resource = `${envBackend.replace(/\/$/, '')}${resource}`;
-      } else if (isDevPort) {
-        if (resource.startsWith('/api') || resource.startsWith('/uploads')) {
-          resource = `http://${currentHost}:3001${resource}`;
-        }
       }
     }
     return originalFetch.call(this, resource, init);
