@@ -147,6 +147,10 @@ export default function CallModal() {
     if (audioContextRef.current) {
       try { audioContextRef.current.close() } catch {}
     }
+    if (window.__webrtcAudioCtx) {
+      try { window.__webrtcAudioCtx.close() } catch {}
+      window.__webrtcAudioCtx = null
+    }
     remoteStreamRef.current = null
     offerSentRef.current = false
     pendingOfferRef.current = null
@@ -174,17 +178,24 @@ export default function CallModal() {
 
   const setRemoteVideoRef = useCallback((el) => {
     remoteVideoRef.current = el
-    if (el && remoteStreamRef.current) {
-      el.srcObject = remoteStreamRef.current
-      el.play().catch(() => {})
+    if (el) {
+      el.muted = true
+      if (remoteStreamRef.current && remoteStreamRef.current.getVideoTracks().length > 0) {
+        el.srcObject = new MediaStream(remoteStreamRef.current.getVideoTracks())
+        el.play().catch(() => {})
+      }
     }
   }, [])
 
   const setRemoteAudioRef = useCallback((el) => {
     remoteAudioRef.current = el
-    if (el && remoteStreamRef.current) {
-      el.srcObject = remoteStreamRef.current
-      el.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true))
+    if (el) {
+      el.muted = false
+      el.volume = 1.0
+      if (remoteStreamRef.current && remoteStreamRef.current.getAudioTracks().length > 0) {
+        el.srcObject = new MediaStream(remoteStreamRef.current.getAudioTracks())
+        el.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true))
+      }
     }
   }, [])
 
@@ -194,6 +205,18 @@ export default function CallModal() {
     try {
       offerSentRef.current = true
       console.log('[WebRTC] 🚀 Creando y enviando Oferta SDP a receptor...')
+      if (pc.getTransceivers) {
+        pc.getTransceivers().forEach(tr => {
+          if (tr.receiver.track.kind === 'audio') {
+            const hasAudio = localStreamRef.current?.getAudioTracks().length > 0
+            tr.direction = hasAudio ? 'sendrecv' : 'recvonly'
+          }
+          if (tr.receiver.track.kind === 'video') {
+            const hasVideo = localStreamRef.current?.getVideoTracks().length > 0
+            tr.direction = hasVideo ? 'sendrecv' : 'recvonly'
+          }
+        })
+      }
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: true,
@@ -237,8 +260,24 @@ export default function CallModal() {
         }
       }
 
+      if (pc.getTransceivers) {
+        pc.getTransceivers().forEach(tr => {
+          if (tr.receiver.track.kind === 'audio') {
+            const hasAudio = localStreamRef.current?.getAudioTracks().length > 0
+            tr.direction = hasAudio ? 'sendrecv' : 'recvonly'
+          }
+          if (tr.receiver.track.kind === 'video') {
+            const hasVideo = localStreamRef.current?.getVideoTracks().length > 0
+            tr.direction = hasVideo ? 'sendrecv' : 'recvonly'
+          }
+        })
+      }
+
       // Generar y enviar Answer
-      const answer = await pc.createAnswer()
+      const answer = await pc.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      })
       await pc.setLocalDescription(answer)
       console.log('[WebRTC] 📤 Enviando WEBRTC_ANSWER')
       const liveWs = useAppStore.getState().ws || ws
@@ -462,43 +501,69 @@ export default function CallModal() {
           console.warn('[WebRTC] addTransceiver fallback:', trErr)
         }
 
-        // 3. Manejo de Tracks Remotos usando event.streams nativo directo
+        // 3. Manejo de Tracks Remotos con asignación directa garantizada (audio + video)
         pc.ontrack = (event) => {
           console.log('[WebRTC] 📡 Track remoto recibido:', event.track.kind, event.track.id)
-          const rStream = (event.streams && event.streams[0])
-            ? event.streams[0]
-            : (remoteStreamRef.current || new MediaStream())
 
-          if (!event.streams || !event.streams[0]) {
-            if (!rStream.getTracks().some(t => t.id === event.track.id)) {
-              rStream.addTrack(event.track)
-            }
+          // Acumular pistas en remoteStreamRef
+          if (!remoteStreamRef.current) {
+            remoteStreamRef.current = new MediaStream()
           }
-          remoteStreamRef.current = rStream
-
-          if (remoteVideoRef.current) {
-            if (remoteVideoRef.current.srcObject !== rStream) {
-              remoteVideoRef.current.srcObject = rStream
-            }
-            remoteVideoRef.current.play().catch(e => console.warn('[WebRTC] Video autoPlay diferido:', e))
+          if (!remoteStreamRef.current.getTracks().some(t => t.id === event.track.id)) {
+            remoteStreamRef.current.addTrack(event.track)
           }
 
-          if (remoteAudioRef.current) {
-            if (remoteAudioRef.current.srcObject !== rStream) {
-              remoteAudioRef.current.srcObject = rStream
+          // A) Track de Audio Remoto -> Enrutamiento directo a <audio> y Web Audio API
+          if (event.track.kind === 'audio') {
+            event.track.enabled = true
+            const directAudioStream = new MediaStream([event.track])
+
+            if (remoteAudioRef.current) {
+              remoteAudioRef.current.srcObject = directAudioStream
+              remoteAudioRef.current.muted = false
+              remoteAudioRef.current.volume = 1.0
+              const playPromise = remoteAudioRef.current.play()
+              if (playPromise !== undefined) {
+                playPromise.then(() => {
+                  console.log('[WebRTC] 🔊 Audio remoto reproduciéndose con éxito vía <audio>')
+                  setAudioBlocked(false)
+                }).catch(err => {
+                  console.warn('[WebRTC] Autoplay de audio diferido por navegador:', err)
+                  setAudioBlocked(true)
+                })
+              }
             }
-            const p = remoteAudioRef.current.play()
-            if (p !== undefined) {
-              p.then(() => setAudioBlocked(false)).catch(e => {
-                console.warn('[WebRTC] Audio autoPlay bloqueado por navegador móvil:', e)
-                setAudioBlocked(true)
-              })
+
+            // Puente directo con Web Audio API hacia altavoces del sistema (garantía de sonido en PC)
+            try {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext
+              if (AudioCtx) {
+                if (!window.__webrtcAudioCtx || window.__webrtcAudioCtx.state === 'closed') {
+                  window.__webrtcAudioCtx = new AudioCtx()
+                }
+                const actx = window.__webrtcAudioCtx
+                if (actx.state === 'suspended') {
+                  actx.resume().catch(() => {})
+                }
+                const source = actx.createMediaStreamSource(directAudioStream)
+                source.connect(actx.destination)
+                console.log('[WebRTC] 🚀 Puente Web Audio conectado directamente a los altavoces de la PC')
+              }
+            } catch (actxErr) {
+              console.warn('[WebRTC] WebAudio bridge error:', actxErr)
             }
           }
 
+          // B) Track de Video Remoto
           if (event.track.kind === 'video') {
+            const directVideoStream = new MediaStream([event.track])
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = directVideoStream
+              remoteVideoRef.current.play().catch(e => console.warn('[WebRTC] Video autoPlay diferido:', e))
+            }
             setHasRemoteVideo(true)
           }
+
           setConnectionQuality('excelente')
         }
 
@@ -795,6 +860,13 @@ export default function CallModal() {
     setSpeakerOn(next)
     if (remoteAudioRef.current) remoteAudioRef.current.muted = !next
     if (remoteVideoRef.current) remoteVideoRef.current.muted = !next
+    if (window.__webrtcAudioCtx) {
+      if (!next) {
+        window.__webrtcAudioCtx.suspend().catch(() => {})
+      } else {
+        window.__webrtcAudioCtx.resume().catch(() => {})
+      }
+    }
   }
 
   if (!activeCall) return null
@@ -1007,6 +1079,7 @@ export default function CallModal() {
           ref={setRemoteVideoRef}
           autoPlay
           playsInline
+          muted
           className={`relative max-w-full max-h-full transition-all duration-300 z-10 ${
             videoFit === 'contain' ? 'object-contain' : 'w-full h-full object-cover'
           } ${hasRemoteVideo ? 'block' : 'hidden'}`}
