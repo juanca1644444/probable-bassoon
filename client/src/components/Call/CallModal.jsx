@@ -89,6 +89,7 @@ export default function CallModal() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [mediaWarning, setMediaWarning] = useState('')
   const [connectionQuality, setConnectionQuality] = useState('conectando')
+  const [audioBlocked, setAudioBlocked] = useState(false)
 
   const timerRef = useRef(null)
   const localStreamRef = useRef(null)
@@ -98,6 +99,11 @@ export default function CallModal() {
   const isInitiatorRef = useRef(!activeCall?.isIncoming)
   const offerSentRef = useRef(false)
   const pendingOfferRef = useRef(null)
+  const localIceCandidatesRef = useRef([])
+
+  useEffect(() => {
+    isInitiatorRef.current = !activeCall?.isIncoming
+  }, [activeCall?.isIncoming])
 
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
@@ -243,7 +249,13 @@ export default function CallModal() {
           }
           if (remoteAudioRef.current) {
             remoteAudioRef.current.srcObject = remoteStream
-            remoteAudioRef.current.play().catch(e => console.warn('[WebRTC] Audio autoPlay diferido:', e))
+            const p = remoteAudioRef.current.play()
+            if (p !== undefined) {
+              p.then(() => setAudioBlocked(false)).catch(e => {
+                console.warn('[WebRTC] Audio autoPlay bloqueado por navegador móvil:', e)
+                setAudioBlocked(true)
+              })
+            }
           }
           if (event.track.kind === 'video') {
             setHasRemoteVideo(true)
@@ -253,12 +265,15 @@ export default function CallModal() {
 
         // 4. Generación de ICE Candidates
         pc.onicecandidate = (event) => {
-          if (event.candidate && ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'WEBRTC_ICE_CANDIDATE',
-              callId: activeCall.callId,
-              candidate: event.candidate
-            }))
+          if (event.candidate) {
+            localIceCandidatesRef.current.push(event.candidate)
+            if (ws?.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'WEBRTC_ICE_CANDIDATE',
+                callId: activeCall.callId,
+                candidate: event.candidate
+              }))
+            }
           }
         }
 
@@ -277,6 +292,14 @@ export default function CallModal() {
           pendingOfferRef.current = null
           console.log('[WebRTC] ⚡ Procesando WEBRTC_OFFER que aguardaba en cola')
           await handleOfferSDP(pc, queuedOffer)
+          while (iceQueueRef.current.length > 0) {
+            const cand = iceQueueRef.current.shift()
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand))
+            } catch (iceErr) {
+              console.warn('[WebRTC] Candidato en cola ignorado tras init:', iceErr)
+            }
+          }
         }
 
         // 6. Si somos el llamador (Iniciador), crear y enviar la Oferta SDP
@@ -351,7 +374,8 @@ export default function CallModal() {
   useEffect(() => {
     const handleSignal = async (e) => {
       const data = e.detail
-      if (!data || data.callId !== activeCall?.callId) return
+      const currentCallId = activeCall?.callId || useAppStore.getState().incomingCall?.callId
+      if (!data || (data.callId && data.callId !== currentCallId)) return
       const pc = pcRef.current
 
       try {
@@ -385,16 +409,25 @@ export default function CallModal() {
               console.warn('[WebRTC] Error candidate:', iceErr)
             }
           } else {
+            console.log('[WebRTC] 🧊 Encolando candidato ICE...')
             iceQueueRef.current.push(data.candidate)
           }
         } else if (data.type === 'ACCEPT_CALL' && isInitiatorRef.current) {
-          // Si el receptor aceptó y la oferta aún no se había procesado
+          // Si el receptor aceptó, re-enviar la oferta SDP y TODOS los candidatos ICE acumulados
           if (pc && pc.localDescription && ws?.readyState === WebSocket.OPEN) {
+            console.log('[WebRTC] 🚀 Receptor aceptó llamada. Re-enviando Oferta SDP y candidatos locales...')
             ws.send(JSON.stringify({
               type: 'WEBRTC_OFFER',
               callId: activeCall.callId,
               offer: pc.localDescription
             }))
+            localIceCandidatesRef.current.forEach(cand => {
+              ws.send(JSON.stringify({
+                type: 'WEBRTC_ICE_CANDIDATE',
+                callId: activeCall.callId,
+                candidate: cand
+              }))
+            })
           }
         }
       } catch (err) {
@@ -568,6 +601,22 @@ export default function CallModal() {
             <div className="w-full px-3 py-1.5 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 text-xs text-center font-medium">
               ⚠️ {mediaWarning}
             </div>
+          )}
+
+          {/* Banner para desbloqueo de audio en navegadores móviles */}
+          {audioBlocked && (
+            <button
+              type="button"
+              onClick={() => {
+                if (remoteAudioRef.current) {
+                  remoteAudioRef.current.play().then(() => setAudioBlocked(false)).catch(() => {})
+                }
+              }}
+              className="w-full px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 animate-bounce cursor-pointer z-30"
+            >
+              <span>🔊</span>
+              <span>Toca aquí para escuchar la llamada</span>
+            </button>
           )}
 
           {/* Avatar con ondas de sonido en tiempo real */}
@@ -750,6 +799,22 @@ export default function CallModal() {
           <div className="absolute top-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-amber-500/90 text-black font-bold text-xs rounded-full shadow-lg z-20 animate-fade-in">
             ⚠️ {mediaWarning}
           </div>
+        )}
+
+        {/* Banner para desbloqueo de audio en navegadores móviles */}
+        {audioBlocked && (
+          <button
+            type="button"
+            onClick={() => {
+              if (remoteAudioRef.current) {
+                remoteAudioRef.current.play().then(() => setAudioBlocked(false)).catch(() => {})
+              }
+            }}
+            className="absolute top-20 left-1/2 -translate-x-1/2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-full shadow-xl flex items-center justify-center gap-2 animate-bounce cursor-pointer z-30"
+          >
+            <span>🔊</span>
+            <span>Toca aquí para activar el sonido</span>
+          </button>
         )}
       </div>
 
