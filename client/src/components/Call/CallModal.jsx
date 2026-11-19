@@ -101,15 +101,27 @@ export default function CallModal() {
   const pendingOfferRef = useRef(null)
   const localIceCandidatesRef = useRef([])
 
-  useEffect(() => {
-    isInitiatorRef.current = !activeCall?.isIncoming
-  }, [activeCall?.isIncoming])
-
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
   const remoteAudioRef = useRef(null)
   const audioContextRef = useRef(null)
   const analyserRef = useRef(null)
+
+  // Sincronizar estado cuando se inicia o recibe llamada
+  useEffect(() => {
+    if (activeCall) {
+      isInitiatorRef.current = !activeCall.isIncoming
+      setCameraOn(activeCall.type === 'video')
+      setHasRemoteVideo(false)
+      setElapsed(0)
+      setMuted(false)
+      setAudioBlocked(false)
+      setMediaWarning('')
+      offerSentRef.current = false
+      iceQueueRef.current = []
+      localIceCandidatesRef.current = []
+    }
+  }, [activeCall?.callId, activeCall?.type, activeCall?.isIncoming])
 
   const chat = activeCall?.chat || activeChat
   const name = chat?.groupName || chat?.contactName || 'Contacto'
@@ -132,12 +144,18 @@ export default function CallModal() {
       localStreamRef.current = null
     }
     if (pcRef.current) {
-      pcRef.current.close()
+      try { pcRef.current.close() } catch {}
       pcRef.current = null
     }
     if (audioContextRef.current) {
       try { audioContextRef.current.close() } catch {}
     }
+    remoteStreamRef.current = null
+    offerSentRef.current = false
+    pendingOfferRef.current = null
+    iceQueueRef.current = []
+    localIceCandidatesRef.current = []
+
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'END_CALL', callId: activeCall?.callId }))
     }
@@ -151,6 +169,102 @@ export default function CallModal() {
     return () => document.removeEventListener('keydown', handler)
   }, [handleEndCall])
 
+  // Callback refs para asegurar que los elementos <video> y <audio> se vinculen inmediatamente
+  const setLocalVideoRef = useCallback((el) => {
+    localVideoRef.current = el
+    if (el && localStreamRef.current) {
+      el.srcObject = localStreamRef.current
+      el.play().catch(() => {})
+    }
+  }, [])
+
+  const setRemoteVideoRef = useCallback((el) => {
+    remoteVideoRef.current = el
+    if (el && remoteStreamRef.current) {
+      el.srcObject = remoteStreamRef.current
+      el.play().catch(() => {})
+    }
+  }, [])
+
+  const setRemoteAudioRef = useCallback((el) => {
+    remoteAudioRef.current = el
+    if (el && remoteStreamRef.current) {
+      el.srcObject = remoteStreamRef.current
+      el.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true))
+    }
+  }, [])
+
+  // Enviar oferta SDP (solo cuando el canal está listo)
+  const sendOffer = useCallback(async (pc) => {
+    if (!pc || offerSentRef.current) return
+    try {
+      offerSentRef.current = true
+      console.log('[WebRTC] 🚀 Creando y enviando Oferta SDP a receptor...')
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      })
+      await pc.setLocalDescription(offer)
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'WEBRTC_OFFER',
+          callId: activeCall?.callId,
+          offer,
+        }))
+        // Despachar candidatos ICE acumulados
+        localIceCandidatesRef.current.forEach((cand) => {
+          ws.send(JSON.stringify({
+            type: 'WEBRTC_ICE_CANDIDATE',
+            callId: activeCall?.callId,
+            candidate: cand,
+          }))
+        })
+      }
+    } catch (err) {
+      console.error('[WebRTC] Error creando oferta SDP:', err)
+    }
+  }, [ws, activeCall?.callId])
+
+  // Manejar oferta SDP remota
+  const handleOfferSDP = useCallback(async (pc, offer) => {
+    try {
+      console.log('[WebRTC] 📩 Aplicando setRemoteDescription de Oferta remota')
+      await pc.setRemoteDescription(new RTCSessionDescription(offer))
+
+      // Vaciar cola de candidatos pendientes
+      while (iceQueueRef.current.length > 0) {
+        const cand = iceQueueRef.current.shift()
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(cand))
+        } catch (iceErr) {
+          console.warn('[WebRTC] Candidato en cola ignorado:', iceErr)
+        }
+      }
+
+      // Generar y enviar Answer
+      const answer = await pc.createAnswer()
+      await pc.setLocalDescription(answer)
+      console.log('[WebRTC] 📤 Enviando WEBRTC_ANSWER')
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'WEBRTC_ANSWER',
+          callId: activeCall?.callId,
+          answer,
+        }))
+        // Despachar candidatos locales acumulados
+        localIceCandidatesRef.current.forEach((cand) => {
+          ws.send(JSON.stringify({
+            type: 'WEBRTC_ICE_CANDIDATE',
+            callId: activeCall?.callId,
+            candidate: cand,
+          }))
+        })
+      }
+    } catch (err) {
+      console.error('[WebRTC] Error en handleOfferSDP:', err)
+    }
+  }, [ws, activeCall?.callId])
+
   // ── Inicialización WebRTC PeerConnection & Media ───────────────────────────
   useEffect(() => {
     if (!activeCall) return
@@ -161,22 +275,27 @@ export default function CallModal() {
         const wantsVideo = callType === 'video' || cameraOn
         let stream = null
 
-        // 1. Obtener stream local (Micrófono y Cámara si es video)
+        // 1. Obtener stream local (Micrófono y Cámara sin forzar resolución horizontal en móviles)
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
-              autoGainControl: true
+              autoGainControl: true,
             },
-            video: wantsVideo
-              ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
-              : false
+            video: wantsVideo ? { facingMode: 'user' } : false,
           })
         } catch (mediaErr) {
           console.warn('[WebRTC] Falló getUserMedia con video, intentando solo audio:', mediaErr)
           try {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              },
+              video: false,
+            })
             setMediaWarning('Cámara no disponible. Llamada activa solo en audio.')
           } catch (audioErr) {
             console.error('[WebRTC] Permisos de micrófono denegados:', audioErr)
@@ -194,6 +313,7 @@ export default function CallModal() {
         // Conectar stream a video local
         if (localVideoRef.current && stream && wantsVideo) {
           localVideoRef.current.srcObject = stream
+          localVideoRef.current.play().catch(() => {})
         }
 
         // Crear analizador de voz para efecto visual de habla
@@ -226,7 +346,7 @@ export default function CallModal() {
           }
         }
 
-        // 2. Crear RTCPeerConnection
+        // 2. Crear RTCPeerConnection con STUN y TURN configurados
         const pc = new RTCPeerConnection(RTC_CONFIG)
         pcRef.current = pc
 
@@ -237,18 +357,29 @@ export default function CallModal() {
           })
         }
 
-        // 3. Manejo de Tracks Remotos
+        // 3. Manejo de Tracks Remotos con acumulación persistente
         pc.ontrack = (event) => {
-          console.log('[WebRTC] 📡 Track remoto recibido:', event.track.kind)
-          const remoteStream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([event.track])
-          remoteStreamRef.current = remoteStream
+          console.log('[WebRTC] 📡 Track remoto recibido:', event.track.kind, event.track.id)
+          if (!remoteStreamRef.current) {
+            remoteStreamRef.current = new MediaStream()
+          }
+          const rStream = remoteStreamRef.current
+          const existingTracks = rStream.getTracks()
+          if (!existingTracks.some(t => t.id === event.track.id)) {
+            rStream.addTrack(event.track)
+          }
 
           if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = remoteStream
+            if (remoteVideoRef.current.srcObject !== rStream) {
+              remoteVideoRef.current.srcObject = rStream
+            }
             remoteVideoRef.current.play().catch(e => console.warn('[WebRTC] Video autoPlay diferido:', e))
           }
+
           if (remoteAudioRef.current) {
-            remoteAudioRef.current.srcObject = remoteStream
+            if (remoteAudioRef.current.srcObject !== rStream) {
+              remoteAudioRef.current.srcObject = rStream
+            }
             const p = remoteAudioRef.current.play()
             if (p !== undefined) {
               p.then(() => setAudioBlocked(false)).catch(e => {
@@ -257,21 +388,22 @@ export default function CallModal() {
               })
             }
           }
+
           if (event.track.kind === 'video') {
             setHasRemoteVideo(true)
           }
           setConnectionQuality('excelente')
         }
 
-        // 4. Generación de ICE Candidates
+        // 4. Generación y manejo de ICE Candidates
         pc.onicecandidate = (event) => {
           if (event.candidate) {
             localIceCandidatesRef.current.push(event.candidate)
-            if (ws?.readyState === WebSocket.OPEN) {
+            if (ws?.readyState === WebSocket.OPEN && (offerSentRef.current || !isInitiatorRef.current)) {
               ws.send(JSON.stringify({
                 type: 'WEBRTC_ICE_CANDIDATE',
                 callId: activeCall.callId,
-                candidate: event.candidate
+                candidate: event.candidate,
               }))
             }
           }
@@ -292,31 +424,11 @@ export default function CallModal() {
           pendingOfferRef.current = null
           console.log('[WebRTC] ⚡ Procesando WEBRTC_OFFER que aguardaba en cola')
           await handleOfferSDP(pc, queuedOffer)
-          while (iceQueueRef.current.length > 0) {
-            const cand = iceQueueRef.current.shift()
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(cand))
-            } catch (iceErr) {
-              console.warn('[WebRTC] Candidato en cola ignorado tras init:', iceErr)
-            }
-          }
         }
 
-        // 6. Si somos el llamador (Iniciador), crear y enviar la Oferta SDP
-        if (isInitiatorRef.current && !offerSentRef.current) {
-          offerSentRef.current = true
-          const offer = await pc.createOffer({
-            offerToReceiveAudio: true,
-            offerToReceiveVideo: true
-          })
-          await pc.setLocalDescription(offer)
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'WEBRTC_OFFER',
-              callId: activeCall.callId,
-              offer
-            }))
-          }
+        // 6. Si somos el llamador y la llamada ya está en 'connected', enviar oferta
+        if (isInitiatorRef.current && status === 'connected' && !offerSentRef.current) {
+          await sendOffer(pc)
         }
       } catch (err) {
         console.error('[WebRTC] Error inicializando WebRTC:', err)
@@ -333,44 +445,13 @@ export default function CallModal() {
         localStreamRef.current = null
       }
       if (pcRef.current) {
-        pcRef.current.close()
+        try { pcRef.current.close() } catch {}
         pcRef.current = null
       }
     }
   }, [activeCall?.callId, callType])
 
-  // Función auxiliar para procesar ofertas remotas de forma segura
-  const handleOfferSDP = async (pc, offer) => {
-    try {
-      console.log('[WebRTC] 📩 Aplicando setRemoteDescription de Oferta')
-      await pc.setRemoteDescription(new RTCSessionDescription(offer))
-
-      // Vaciar cola de candidatos pendientes
-      while (iceQueueRef.current.length > 0) {
-        const cand = iceQueueRef.current.shift()
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(cand))
-        } catch (iceErr) {
-          console.warn('[WebRTC] Candidato en cola ignorado:', iceErr)
-        }
-      }
-
-      // Generar y enviar Answer
-      const answer = await pc.createAnswer()
-      await pc.setLocalDescription(answer)
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'WEBRTC_ANSWER',
-          callId: activeCall.callId,
-          answer
-        }))
-      }
-    } catch (err) {
-      console.error('[WebRTC] Error en handleOfferSDP:', err)
-    }
-  }
-
-  // ── Listener de Señalización WebRTC (Offer, Answer, Candidates) ───────────
+  // ── Listener de Señalización WebRTC (Offer, Answer, Candidates, Accept) ───
   useEffect(() => {
     const handleSignal = async (e) => {
       const data = e.detail
@@ -387,21 +468,21 @@ export default function CallModal() {
             pendingOfferRef.current = data.offer
           }
         } else if (data.type === 'WEBRTC_ANSWER' && isInitiatorRef.current && pc) {
-          // El llamador recibe la respuesta del receptor
           console.log('[WebRTC] 📩 Recibida WEBRTC_ANSWER')
-          await pc.setRemoteDescription(new RTCSessionDescription(data.answer))
-
-          // Vaciar cola de candidatos pendientes
-          while (iceQueueRef.current.length > 0) {
-            const cand = iceQueueRef.current.shift()
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(cand))
-            } catch (iceErr) {
-              console.warn('[WebRTC] Candidato en cola ignorado:', iceErr)
+          if (pc.signalingState === 'have-local-offer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.answer))
+            while (iceQueueRef.current.length > 0) {
+              const cand = iceQueueRef.current.shift()
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(cand))
+              } catch (iceErr) {
+                console.warn('[WebRTC] Candidato en cola ignorado:', iceErr)
+              }
             }
+          } else {
+            console.warn('[WebRTC] Ignorando WEBRTC_ANSWER en estado:', pc.signalingState)
           }
         } else if (data.type === 'WEBRTC_ICE_CANDIDATE' && data.candidate) {
-          // Candidato de red ICE
           if (pc && pc.remoteDescription && pc.remoteDescription.type) {
             try {
               await pc.addIceCandidate(new RTCIceCandidate(data.candidate))
@@ -409,25 +490,12 @@ export default function CallModal() {
               console.warn('[WebRTC] Error candidate:', iceErr)
             }
           } else {
-            console.log('[WebRTC] 🧊 Encolando candidato ICE...')
             iceQueueRef.current.push(data.candidate)
           }
         } else if (data.type === 'ACCEPT_CALL' && isInitiatorRef.current) {
-          // Si el receptor aceptó, re-enviar la oferta SDP y TODOS los candidatos ICE acumulados
-          if (pc && pc.localDescription && ws?.readyState === WebSocket.OPEN) {
-            console.log('[WebRTC] 🚀 Receptor aceptó llamada. Re-enviando Oferta SDP y candidatos locales...')
-            ws.send(JSON.stringify({
-              type: 'WEBRTC_OFFER',
-              callId: activeCall.callId,
-              offer: pc.localDescription
-            }))
-            localIceCandidatesRef.current.forEach(cand => {
-              ws.send(JSON.stringify({
-                type: 'WEBRTC_ICE_CANDIDATE',
-                callId: activeCall.callId,
-                candidate: cand
-              }))
-            })
+          console.log('[WebRTC] 🚀 Receptor aceptó llamada. Enviando Oferta SDP...')
+          if (pc) {
+            await sendOffer(pc)
           }
         }
       } catch (err) {
@@ -437,7 +505,7 @@ export default function CallModal() {
 
     window.addEventListener('webrtc_signal', handleSignal)
     return () => window.removeEventListener('webrtc_signal', handleSignal)
-  }, [activeCall?.callId, ws])
+  }, [activeCall?.callId, ws, handleOfferSDP, sendOffer])
 
   // ── Controles de Hardware: Micrófono, Cámara, Altavoz, Pantalla ───────────
 
@@ -458,18 +526,19 @@ export default function CallModal() {
 
     const videoTrack = localStreamRef.current.getVideoTracks()[0]
     if (videoTrack) {
-      videoTrack.enabled = !cameraOn
-      setCameraOn(!cameraOn)
+      const nextState = !cameraOn
+      videoTrack.enabled = nextState
+      setCameraOn(nextState)
     } else if (!cameraOn) {
-      // Si la llamada inició en audio, adquirir track de video y añadir a peer connection
       try {
         const vStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+          video: { facingMode: 'user' }
         })
         const newTrack = vStream.getVideoTracks()[0]
         localStreamRef.current.addTrack(newTrack)
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = localStreamRef.current
+          localVideoRef.current.play().catch(() => {})
         }
         if (pc) {
           pc.addTrack(newTrack, localStreamRef.current)
@@ -478,7 +547,7 @@ export default function CallModal() {
           if (ws?.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({
               type: 'WEBRTC_OFFER',
-              callId: activeCall.callId,
+              callId: activeCall?.callId,
               offer
             }))
           }
@@ -543,8 +612,7 @@ export default function CallModal() {
         className="fixed bottom-24 right-6 z-50 bg-emerald-600 rounded-2xl shadow-2xl p-3 flex items-center gap-3 cursor-pointer hover:bg-emerald-500 transition-colors animate-fade-in border border-white/20"
         onClick={() => setMinimized(false)}
       >
-        {/* Audio remoto oculto pero reproduciendo */}
-        <audio ref={remoteAudioRef} autoPlay playsInline />
+        <audio ref={setRemoteAudioRef} autoPlay playsInline />
         {avatar ? (
           <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
         ) : (
@@ -573,7 +641,7 @@ export default function CallModal() {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         {/* Audio remoto en reproducción directa */}
-        <audio ref={remoteAudioRef} autoPlay playsInline />
+        <audio ref={setRemoteAudioRef} autoPlay playsInline />
 
         {/* Fondo con desenfoque elegante */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#07171d] via-[#0b2027] to-[#071318] opacity-98" />
@@ -718,16 +786,16 @@ export default function CallModal() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black animate-fade-in select-none">
       {/* Audio remoto */}
-      <audio ref={remoteAudioRef} autoPlay playsInline />
+      <audio ref={setRemoteAudioRef} autoPlay playsInline />
 
       {/* Área Principal de Video Remoto */}
       <div className="flex-1 relative flex items-center justify-center bg-gray-950 overflow-hidden">
         {/* Video Remoto Real */}
         <video
-          ref={remoteVideoRef}
+          ref={setRemoteVideoRef}
           autoPlay
           playsInline
-          className={`w-full h-full object-cover transition-opacity duration-300 ${hasRemoteVideo ? 'opacity-100' : 'opacity-0'}`}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${hasRemoteVideo ? 'block' : 'hidden'}`}
         />
 
         {/* Fallback de Avatar si el interlocutor aún no transmite cámara */}
@@ -742,19 +810,21 @@ export default function CallModal() {
             )}
             <div className="text-center">
               <p className="text-white font-bold text-xl">{name}</p>
-              <p className="text-white/60 text-xs mt-1">Conectando canal de video HD...</p>
+              <p className="text-emerald-400 text-xs mt-1 animate-pulse font-medium">
+                {status === 'ringing' ? '📳 Llamando...' : '⏳ Conectando audio y video HD...'}
+              </p>
             </div>
           </div>
         )}
 
         {/* Cámara Local PiP (Picture in Picture) */}
-        <div className="absolute bottom-6 right-6 w-36 h-48 sm:w-44 sm:h-60 rounded-2xl overflow-hidden shadow-2xl border-2 border-emerald-500/50 bg-gray-900 group">
+        <div className="absolute bottom-6 right-6 w-36 h-48 sm:w-44 sm:h-60 rounded-2xl overflow-hidden shadow-2xl border-2 border-emerald-500/50 bg-gray-900 group z-30">
           <video
-            ref={localVideoRef}
+            ref={setLocalVideoRef}
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover transform -scale-x-100 transition-opacity ${cameraOn ? 'opacity-100' : 'opacity-0'}`}
+            className={`w-full h-full object-cover transform -scale-x-100 ${cameraOn ? 'block' : 'hidden'}`}
           />
           {!cameraOn && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white/50 text-xs p-2 text-center">
@@ -764,7 +834,7 @@ export default function CallModal() {
               <span>Cámara apagada</span>
             </div>
           )}
-          <span className="absolute bottom-2 left-2 text-[10px] font-bold text-white/90 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm">
+          <span className="absolute bottom-2 left-2 text-[10px] font-bold text-white/90 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm pointer-events-none">
             Tú {muted ? '(Mute)' : ''}
           </span>
         </div>
@@ -809,10 +879,13 @@ export default function CallModal() {
               if (remoteAudioRef.current) {
                 remoteAudioRef.current.play().then(() => setAudioBlocked(false)).catch(() => {})
               }
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.play().catch(() => {})
+              }
             }}
-            className="absolute top-20 left-1/2 -translate-x-1/2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-full shadow-xl flex items-center justify-center gap-2 animate-bounce cursor-pointer z-30"
+            className="absolute top-20 left-1/2 -translate-x-1/2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-full shadow-2xl flex items-center justify-center gap-2 animate-bounce cursor-pointer z-40 border-2 border-white/40"
           >
-            <span>🔊</span>
+            <span className="text-lg">🔊</span>
             <span>Toca aquí para activar el sonido</span>
           </button>
         )}
