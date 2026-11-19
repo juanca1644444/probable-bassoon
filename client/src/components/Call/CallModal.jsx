@@ -60,6 +60,10 @@ const RTC_CONFIG = {
   iceCandidatePoolSize: 10
 }
 
+// Helpers para distinguir cámaras físicas reales de controladores virtuales (ej. DroidCam, OBS)
+const isVirtualCam = (label) => /droidcam|virtual|obs|manycam|vcam|fake/i.test(label || '')
+const isPhysicalCam = (label) => /hd|webcam|integrated|realtek|camera|cámara|usb/i.test(label || '')
+
 export default function CallModal() {
   const { activeCall, endCall, activeChat } = useAppStore()
   const ws = useAppStore(s => s.ws)
@@ -75,6 +79,11 @@ export default function CallModal() {
   const [mediaWarning, setMediaWarning] = useState('')
   const [connectionQuality, setConnectionQuality] = useState('conectando')
   const [audioBlocked, setAudioBlocked] = useState(false)
+
+  // Cámaras disponibles y cámara activa
+  const [videoDevices, setVideoDevices] = useState([])
+  const [currentCameraId, setCurrentCameraId] = useState('')
+  const [currentCameraLabel, setCurrentCameraLabel] = useState('')
 
   const timerRef = useRef(null)
   const localStreamRef = useRef(null)
@@ -263,27 +272,50 @@ export default function CallModal() {
         const wantsVideo = callType === 'video' || cameraOn
         let stream = null
 
+        // Priorizar cámaras físicas sobre controladores virtuales (DroidCam, OBS, etc.)
+        let preferredCameraId = null
+        try {
+          if (navigator.mediaDevices?.enumerateDevices) {
+            const initialDevs = await navigator.mediaDevices.enumerateDevices()
+            const vDevs = initialDevs.filter(d => d.kind === 'videoinput')
+            if (vDevs.length > 0) setVideoDevices(vDevs)
+            const physical = vDevs.find(d => d.label && !isVirtualCam(d.label))
+            if (physical) {
+              preferredCameraId = physical.deviceId
+              console.log('[WebRTC] 🎯 Cámara física detectada previamente:', physical.label)
+            }
+          }
+        } catch (devInitErr) {
+          console.warn('[WebRTC] Error enumerando dispositivos previos:', devInitErr)
+        }
+
+        const preferredVideoConstraint = preferredCameraId
+          ? { deviceId: { exact: preferredCameraId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          : { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+
         // 1. Obtención universal de hardware (Micrófono y Cámara en PC / Móvil)
         if (wantsVideo) {
           try {
-            // Intento 1: Audio + Video juntos con ideal: 'user' (Un solo diálogo de permisos en navegador)
+            // Intento 1: Audio + Video prioritario (física si está disponible)
             stream = await navigator.mediaDevices.getUserMedia({
               audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-              video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+              video: preferredVideoConstraint
             })
           } catch (e1) {
-            console.warn('[WebRTC] Intento 1 audio+video ideal falló:', e1)
+            console.warn('[WebRTC] Intento 1 audio+video prioritario falló:', e1)
             try {
               // Intento 2: Audio + Video genérico para PC / Webcams USB
               stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
-                video: true
+                video: preferredCameraId ? { deviceId: preferredCameraId } : true
               })
             } catch (e2) {
               console.warn('[WebRTC] Intento 2 audio+video estándar falló:', e2)
               // Intento 3: Solo video si el PC carece de micrófono o fue denegado
               try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true })
+                stream = await navigator.mediaDevices.getUserMedia({
+                  video: preferredCameraId ? { deviceId: preferredCameraId } : true
+                })
                 setMediaWarning('Micrófono no detectado en PC. Transmitiendo solo video.')
               } catch (e3) {
                 // Intento 4: Solo audio si el PC carece de cámara o fue denegada
@@ -297,6 +329,47 @@ export default function CallModal() {
                 }
               }
             }
+          }
+
+          // Verificación post-adquisición: si se abrió una cámara virtual (DroidCam) y existe una física (HD WebCam)
+          try {
+            if (navigator.mediaDevices?.enumerateDevices && stream.getVideoTracks().length > 0) {
+              const allDevs = await navigator.mediaDevices.enumerateDevices()
+              const vInputs = allDevs.filter(d => d.kind === 'videoinput')
+              setVideoDevices(vInputs)
+
+              const activeTrack = stream.getVideoTracks()[0]
+              const activeLabel = activeTrack.label || ''
+              setCurrentCameraLabel(activeLabel)
+              const activeSettings = activeTrack.getSettings ? activeTrack.getSettings() : {}
+              setCurrentCameraId(activeSettings.deviceId || '')
+
+              // Si la cámara abierta es virtual (DroidCam) pero tenemos una física disponible:
+              if (isVirtualCam(activeLabel)) {
+                const physical = vInputs.find(d => !isVirtualCam(d.label))
+                if (physical && physical.deviceId !== activeSettings.deviceId) {
+                  console.log('[WebRTC] 🔄 Cambiando automáticamente de DroidCam a cámara física:', physical.label)
+                  try {
+                    const physicalStream = await navigator.mediaDevices.getUserMedia({
+                      video: { deviceId: { exact: physical.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                    })
+                    const physTrack = physicalStream.getVideoTracks()[0]
+                    if (physTrack) {
+                      activeTrack.stop()
+                      stream.removeTrack(activeTrack)
+                      stream.addTrack(physTrack)
+                      setCurrentCameraId(physical.deviceId)
+                      setCurrentCameraLabel(physTrack.label || physical.label)
+                      console.log('[WebRTC] ✅ Cámara física conectada exitosamente:', physTrack.label)
+                    }
+                  } catch (pErr) {
+                    console.warn('[WebRTC] No se pudo cambiar a cámara física automáticamente:', pErr)
+                  }
+                }
+              }
+            }
+          } catch (enumErr) {
+            console.warn('[WebRTC] Error en verificación post-adquisición:', enumErr)
           }
         } else {
           // Modo voz: solo audio
@@ -569,9 +642,17 @@ export default function CallModal() {
     } else if (!cameraOn) {
       try {
         let vStream = null
+        let targetDevId = currentCameraId
+        if (!targetDevId && videoDevices.length > 0) {
+          const phys = videoDevices.find(d => !isVirtualCam(d.label))
+          if (phys) targetDevId = phys.deviceId
+        }
+
         try {
           vStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            video: targetDevId
+              ? { deviceId: { exact: targetDevId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+              : { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
           })
         } catch {
           vStream = await navigator.mediaDevices.getUserMedia({ video: true })
@@ -579,20 +660,28 @@ export default function CallModal() {
         const newTrack = vStream ? vStream.getVideoTracks()[0] : null
         if (newTrack) {
           localStreamRef.current.addTrack(newTrack)
+          setCurrentCameraLabel(newTrack.label || 'Cámara Web')
+          if (newTrack.getSettings?.().deviceId) setCurrentCameraId(newTrack.getSettings().deviceId)
+
           if (localVideoRef.current) {
             localVideoRef.current.srcObject = localStreamRef.current
             localVideoRef.current.play().catch(() => {})
           }
           if (pc) {
-            pc.addTrack(newTrack, localStreamRef.current)
-            const offer = await pc.createOffer()
-            await pc.setLocalDescription(offer)
-            if (ws?.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({
-                type: 'WEBRTC_OFFER',
-                callId: activeCall?.callId,
-                offer
-              }))
+            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video')
+            if (sender) {
+              await sender.replaceTrack(newTrack)
+            } else {
+              pc.addTrack(newTrack, localStreamRef.current)
+              const offer = await pc.createOffer()
+              await pc.setLocalDescription(offer)
+              if (ws?.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'WEBRTC_OFFER',
+                  callId: activeCall?.callId,
+                  offer
+                }))
+              }
             }
           }
           setCameraOn(true)
@@ -608,6 +697,58 @@ export default function CallModal() {
           setMediaWarning('No se pudo encender la cámara.')
         }
       }
+    }
+  }
+
+  // Alternar entre cámaras disponibles (ej. HD WebCam <-> DroidCam o Frontal <-> Trasera)
+  const switchCamera = async (targetDeviceId) => {
+    try {
+      const pc = pcRef.current
+      if (!localStreamRef.current) return
+
+      let nextId = targetDeviceId
+      if (!nextId && videoDevices.length > 1) {
+        const currIdx = videoDevices.findIndex(d => d.deviceId === currentCameraId)
+        const nextIdx = (currIdx + 1) % videoDevices.length
+        nextId = videoDevices[nextIdx].deviceId
+      }
+      if (!nextId) return
+
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: nextId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      })
+      const newTrack = newStream.getVideoTracks()[0]
+      if (!newTrack) return
+
+      const oldTrack = localStreamRef.current.getVideoTracks()[0]
+      if (oldTrack) {
+        oldTrack.stop()
+        localStreamRef.current.removeTrack(oldTrack)
+      }
+      localStreamRef.current.addTrack(newTrack)
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current
+        localVideoRef.current.play().catch(() => {})
+      }
+
+      if (pc) {
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video')
+        if (sender) {
+          await sender.replaceTrack(newTrack)
+        } else {
+          pc.addTrack(newTrack, localStreamRef.current)
+        }
+      }
+
+      setCurrentCameraId(nextId)
+      setCurrentCameraLabel(newTrack.label || 'Cámara Web')
+      setCameraOn(true)
+      setMediaWarning('')
+      console.log('[WebRTC] Cámara cambiada exitosamente a:', newTrack.label)
+    } catch (err) {
+      console.error('[WebRTC] Error al cambiar cámara:', err)
+      setMediaWarning('Error al cambiar de cámara: ' + (err.message || 'Dispositivo no disponible'))
     }
   }
 
@@ -885,9 +1026,51 @@ export default function CallModal() {
               <span>Cámara apagada</span>
             </div>
           )}
-          <span className="absolute bottom-2 left-2 text-[10px] font-bold text-white/90 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm pointer-events-none">
-            Tú {muted ? '(Mute)' : ''}
-          </span>
+
+          {/* Botón flotante para alternar cámara en el PiP si hay 2 o más */}
+          {videoDevices.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                switchCamera()
+              }}
+              title={`Cámara: ${currentCameraLabel || 'Actual'}. Clic para alternar cámara`}
+              className="absolute top-2 right-2 bg-black/80 hover:bg-emerald-600 text-white p-1.5 rounded-full backdrop-blur-md transition-all shadow-lg flex items-center justify-center hover:scale-110 active:scale-95"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 7h10v2l3-3-3-3v2H5v6h2V7zm10 10H7v-2l-3 3 3 3v-2h12v-6h-2v4z"/>
+              </svg>
+            </button>
+          )}
+
+          {/* Botón de cambio directo si la cámara detectada es DroidCam */}
+          {isVirtualCam(currentCameraLabel) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                const phys = videoDevices.find(d => !isVirtualCam(d.label))
+                if (phys) switchCamera(phys.deviceId)
+                else switchCamera()
+              }}
+              className="absolute top-2 left-2 bg-amber-500 hover:bg-amber-400 text-black text-[9px] font-extrabold px-2 py-1 rounded-md shadow-md animate-pulse cursor-pointer"
+              title="Detectado DroidCam. Toca para cambiar a tu cámara web de PC."
+            >
+              ⚡ Usar HD Cam
+            </button>
+          )}
+
+          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between pointer-events-none">
+            <span className="text-[10px] font-bold text-white/90 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm truncate max-w-[70px]">
+              Tú {muted ? '(Mute)' : ''}
+            </span>
+            {currentCameraLabel && (
+              <span className="text-[9px] font-medium text-emerald-300 bg-black/75 px-1.5 py-0.5 rounded-full backdrop-blur-sm truncate max-w-[85px]">
+                {currentCameraLabel.replace(/Video|Source|Device/gi, '').trim()}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Cabecera superior con estado y botón minimizar */}
@@ -975,6 +1158,23 @@ export default function CallModal() {
           </CtrlBtn>
           <span className="text-white/50 text-[11px] font-medium">{cameraOn ? 'Cámara' : 'Sin cámara'}</span>
         </div>
+
+        {/* Cambiar Cámara (si hay 2 o más cámaras) */}
+        {videoDevices.length > 1 && (
+          <div className="flex flex-col items-center gap-1">
+            <CtrlBtn
+              onClick={() => switchCamera()}
+              title={`Cámara actual: ${currentCameraLabel || 'Detectada'}. Clic para alternar cámara.`}
+            >
+              <svg className="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 7h10v2l3-3-3-3v2H5v6h2V7zm10 10H7v-2l-3 3 3 3v-2h12v-6h-2v4z"/>
+              </svg>
+            </CtrlBtn>
+            <span className="text-white/50 text-[11px] font-medium truncate max-w-[65px]">
+              {currentCameraLabel ? (currentCameraLabel.length > 8 ? currentCameraLabel.substring(0, 7) + '..' : currentCameraLabel) : 'Cambiar'}
+            </span>
+          </div>
+        )}
 
         {/* Compartir Pantalla */}
         <div className="flex flex-col items-center gap-1">
