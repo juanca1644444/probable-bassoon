@@ -45,6 +45,11 @@ function initDatabase() {
       isPinned INTEGER DEFAULT 0,
       isMuted INTEGER DEFAULT 0,
       isArchived INTEGER DEFAULT 0,
+      channel TEXT DEFAULT 'whatsapp',
+      status TEXT DEFAULT 'open',
+      assignedAgentId TEXT DEFAULT NULL,
+      ragBotActive INTEGER DEFAULT 0,
+      disappearingTimer INTEGER DEFAULT 0,
       createdAt INTEGER DEFAULT (strftime('%s','now') * 1000),
       FOREIGN KEY (contactId) REFERENCES contacts(id)
     );
@@ -367,8 +372,8 @@ function ensurePrivateNetworkContacts(db) {
     `);
 
     const insChat = db.prepare(`
-      INSERT OR IGNORE INTO chats (id, contactId, type, groupName, groupAvatar, lastMessage, lastMessageTime, unreadCount, isPinned, isMuted, isArchived, createdAt, channel, status)
-      VALUES (?, ?, 'individual', null, null, 'Conectado a la Red Privada CHASKYAPP 🌐', ?, 0, 0, 0, 0, ?, 'whatsapp', 'open')
+      INSERT OR IGNORE INTO chats (id, contactId, type, groupName, groupAvatar, lastMessage, lastMessageTime, unreadCount, isPinned, isMuted, isArchived, createdAt)
+      VALUES (?, ?, 'individual', null, null, 'Conectado a la Red Privada CHASKYAPP 🌐', ?, 0, 0, 0, 0, ?)
     `);
 
     contacts.forEach(c => {
