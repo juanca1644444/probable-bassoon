@@ -48,29 +48,14 @@ function CtrlBtn({ onClick, active, danger, title, children, large }) {
   )
 }
 
-// ── Configuración WebRTC STUN + TURN (Soporte CGNAT y redes móviles 4G/5G) ────
+// ── Configuración WebRTC STUN de Alta Velocidad (Google Global Relay) ────
 const RTC_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun.relay.metered.ca:80' },
-    {
-      urls: 'turn:global.relay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:global.relay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:global.relay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
+    { urls: 'stun:stun4.l.google.com:19302' },
   ],
   iceCandidatePoolSize: 10
 }
@@ -204,17 +189,19 @@ export default function CallModal() {
         offerToReceiveVideo: true,
       })
       await pc.setLocalDescription(offer)
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
+      const liveWs = useAppStore.getState().ws || ws
+      const liveCallId = activeCall?.callId || useAppStore.getState().activeCall?.callId
+      if (liveWs?.readyState === WebSocket.OPEN && liveCallId) {
+        liveWs.send(JSON.stringify({
           type: 'WEBRTC_OFFER',
-          callId: activeCall?.callId,
+          callId: liveCallId,
           offer,
         }))
         // Despachar candidatos ICE acumulados
         localIceCandidatesRef.current.forEach((cand) => {
-          ws.send(JSON.stringify({
+          liveWs.send(JSON.stringify({
             type: 'WEBRTC_ICE_CANDIDATE',
-            callId: activeCall?.callId,
+            callId: liveCallId,
             candidate: cand,
           }))
         })
@@ -244,17 +231,19 @@ export default function CallModal() {
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
       console.log('[WebRTC] 📤 Enviando WEBRTC_ANSWER')
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
+      const liveWs = useAppStore.getState().ws || ws
+      const liveCallId = activeCall?.callId || useAppStore.getState().activeCall?.callId
+      if (liveWs?.readyState === WebSocket.OPEN && liveCallId) {
+        liveWs.send(JSON.stringify({
           type: 'WEBRTC_ANSWER',
-          callId: activeCall?.callId,
+          callId: liveCallId,
           answer,
         }))
         // Despachar candidatos locales acumulados
         localIceCandidatesRef.current.forEach((cand) => {
-          ws.send(JSON.stringify({
+          liveWs.send(JSON.stringify({
             type: 'WEBRTC_ICE_CANDIDATE',
-            callId: activeCall?.callId,
+            callId: liveCallId,
             candidate: cand,
           }))
         })
@@ -272,65 +261,65 @@ export default function CallModal() {
     const initWebRTC = async () => {
       try {
         const wantsVideo = callType === 'video' || cameraOn
-        let audioStream = null
-        let videoStream = null
+        let stream = null
 
-        // 1. Obtener audio (micrófono) con cancelación de eco y ruido
-        try {
-          audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            }
-          })
-        } catch (audioErr) {
-          console.error('[WebRTC] Permisos de micrófono denegados o no detectados:', audioErr)
-          setMediaWarning('Permiso de micrófono denegado en el navegador.')
-        }
-
-        // 2. Obtener video si corresponde (soporte universal para PC / Móvil / USB Webcams)
+        // 1. Obtención universal de hardware (Micrófono y Cámara en PC / Móvil)
         if (wantsVideo) {
-          // Intento A: Con facingMode ideal (preferencia en móviles sin romper navegadores de escritorio)
           try {
-            videoStream = await navigator.mediaDevices.getUserMedia({
+            // Intento 1: Audio + Video juntos con ideal: 'user' (Un solo diálogo de permisos en navegador)
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
               video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
             })
-          } catch (vErr1) {
-            console.warn('[WebRTC] Intento con facingMode ideal falló, intentando video: true genérico (PC):', vErr1)
-            // Intento B: video genérico directo (estándar para cámaras integradas de PC y webcams USB)
+          } catch (e1) {
+            console.warn('[WebRTC] Intento 1 audio+video ideal falló:', e1)
             try {
-              videoStream = await navigator.mediaDevices.getUserMedia({ video: true })
-            } catch (vErr2) {
-              console.warn('[WebRTC] Falló acceso a cámara de video en PC/Móvil:', vErr2)
-              if (vErr2.name === 'NotAllowedError') {
-                setMediaWarning('Permiso de cámara bloqueado en el navegador. Haz clic en el candado 🔒 de la URL y actívala.')
-              } else if (vErr2.name === 'NotReadableError' || vErr2.message?.includes('could not start')) {
-                setMediaWarning('La cámara está siendo usada por otra aplicación (Zoom, Teams, etc.). Ciérrala para activarla.')
-              } else {
-                setMediaWarning('Cámara no detectada o no disponible. Llamada activa en modo solo audio.')
+              // Intento 2: Audio + Video genérico para PC / Webcams USB
+              stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: true
+              })
+            } catch (e2) {
+              console.warn('[WebRTC] Intento 2 audio+video estándar falló:', e2)
+              // Intento 3: Solo video si el PC carece de micrófono o fue denegado
+              try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true })
+                setMediaWarning('Micrófono no detectado en PC. Transmitiendo solo video.')
+              } catch (e3) {
+                // Intento 4: Solo audio si el PC carece de cámara o fue denegada
+                try {
+                  stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+                  setMediaWarning('Cámara no detectada en PC. Transmitiendo solo audio.')
+                } catch (e4) {
+                  console.warn('[WebRTC] Sin dispositivos locales de captura:', e4)
+                  stream = new MediaStream()
+                  setMediaWarning('Sin cámara ni micrófono. Conectado en modo recepción.')
+                }
               }
+            }
+          }
+        } else {
+          // Modo voz: solo audio
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            })
+          } catch (aErr1) {
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            } catch (aErr2) {
+              console.warn('[WebRTC] Micrófono no detectado en llamada de voz:', aErr2)
+              stream = new MediaStream()
+              setMediaWarning('Micrófono no detectado en PC. Conectado en modo recepción de audio.')
             }
           }
         }
 
         if (isCancelled) {
-          if (audioStream) audioStream.getTracks().forEach(t => t.stop())
-          if (videoStream) videoStream.getTracks().forEach(t => t.stop())
+          if (stream) stream.getTracks().forEach(t => t.stop())
           return
         }
 
-        // Combinar tracks obtenidos en el MediaStream local definitivo
-        const combinedTracks = [
-          ...(audioStream ? audioStream.getAudioTracks() : []),
-          ...(videoStream ? videoStream.getVideoTracks() : [])
-        ]
-
-        if (combinedTracks.length === 0) {
-          throw new Error('No se pudo acceder a dispositivos de captura (micrófono ni cámara).')
-        }
-
-        const stream = new MediaStream(combinedTracks)
         localStreamRef.current = stream
 
         const hasVideo = stream.getVideoTracks().length > 0
@@ -372,28 +361,38 @@ export default function CallModal() {
           }
         }
 
-        // 2. Crear RTCPeerConnection con STUN y TURN configurados
+        // 2. Crear RTCPeerConnection con STUN Google de alta velocidad
         const pc = new RTCPeerConnection(RTC_CONFIG)
         pcRef.current = pc
 
-        // Añadir tracks locales a la conexión
-        if (stream) {
-          stream.getTracks().forEach(track => {
+        // Añadir tracks locales o transceivers de recepción a la conexión
+        if (combinedTracks.length > 0) {
+          combinedTracks.forEach(track => {
             pc.addTrack(track, stream)
           })
+        } else {
+          // Si el dispositivo carece de micrófono o cámara, agregamos transceivers para recibir
+          try {
+            pc.addTransceiver('audio', { direction: 'recvonly' })
+            if (wantsVideo) pc.addTransceiver('video', { direction: 'recvonly' })
+          } catch (trErr) {
+            console.warn('[WebRTC] addTransceiver fallback:', trErr)
+          }
         }
 
-        // 3. Manejo de Tracks Remotos con acumulación persistente
+        // 3. Manejo de Tracks Remotos usando event.streams nativo directo
         pc.ontrack = (event) => {
           console.log('[WebRTC] 📡 Track remoto recibido:', event.track.kind, event.track.id)
-          if (!remoteStreamRef.current) {
-            remoteStreamRef.current = new MediaStream()
+          const rStream = (event.streams && event.streams[0])
+            ? event.streams[0]
+            : (remoteStreamRef.current || new MediaStream())
+
+          if (!event.streams || !event.streams[0]) {
+            if (!rStream.getTracks().some(t => t.id === event.track.id)) {
+              rStream.addTrack(event.track)
+            }
           }
-          const rStream = remoteStreamRef.current
-          const existingTracks = rStream.getTracks()
-          if (!existingTracks.some(t => t.id === event.track.id)) {
-            rStream.addTrack(event.track)
-          }
+          remoteStreamRef.current = rStream
 
           if (remoteVideoRef.current) {
             if (remoteVideoRef.current.srcObject !== rStream) {
@@ -421,14 +420,16 @@ export default function CallModal() {
           setConnectionQuality('excelente')
         }
 
-        // 4. Generación y manejo de ICE Candidates
+        // 4. Generación y manejo de ICE Candidates con WebSocket en vivo
         pc.onicecandidate = (event) => {
           if (event.candidate) {
             localIceCandidatesRef.current.push(event.candidate)
-            if (ws?.readyState === WebSocket.OPEN && (offerSentRef.current || !isInitiatorRef.current)) {
-              ws.send(JSON.stringify({
+            const liveWs = useAppStore.getState().ws || ws
+            const liveCallId = activeCall?.callId || useAppStore.getState().activeCall?.callId
+            if (liveWs?.readyState === WebSocket.OPEN && liveCallId && (offerSentRef.current || !isInitiatorRef.current)) {
+              liveWs.send(JSON.stringify({
                 type: 'WEBRTC_ICE_CANDIDATE',
-                callId: activeCall.callId,
+                callId: liveCallId,
                 candidate: event.candidate,
               }))
             }

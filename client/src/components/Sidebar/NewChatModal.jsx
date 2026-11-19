@@ -210,6 +210,36 @@ export default function NewChatModal({ onClose, onSelectChat }) {
                     {contact.status || contact.phone || 'Disponible'}
                   </p>
                 </div>
+
+                {/* Botones de llamada rápida */}
+                <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      await handleContactClick(contact)
+                      const chat = useAppStore.getState().activeChat
+                      if (chat) useAppStore.getState().startCall(chat, 'voice')
+                    }}
+                    title="Llamada de voz WebRTC"
+                    className="w-7 h-7 rounded-full bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition"
+                  >
+                    <span className="text-xs">📞</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      await handleContactClick(contact)
+                      const chat = useAppStore.getState().activeChat
+                      if (chat) useAppStore.getState().startCall(chat, 'video')
+                    }}
+                    title="Videollamada WebRTC"
+                    className="w-7 h-7 rounded-full bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition"
+                  >
+                    <span className="text-xs">📹</span>
+                  </button>
+                </div>
               </div>
             ))
           )}
