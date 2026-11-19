@@ -79,6 +79,7 @@ export default function CallModal() {
   const [mediaWarning, setMediaWarning] = useState('')
   const [connectionQuality, setConnectionQuality] = useState('conectando')
   const [audioBlocked, setAudioBlocked] = useState(false)
+  const [videoFit, setVideoFit] = useState('contain') // 'contain' (sin zoom ni recorte / encuadre completo) o 'cover'
 
   // Cámaras disponibles y cámara activa
   const [videoDevices, setVideoDevices] = useState([])
@@ -289,9 +290,12 @@ export default function CallModal() {
           console.warn('[WebRTC] Error enumerando dispositivos previos:', devInitErr)
         }
 
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
         const preferredVideoConstraint = preferredCameraId
           ? { deviceId: { exact: preferredCameraId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          : { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          : isMobile
+            ? { facingMode: { ideal: 'user' }, width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } }
+            : { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
 
         // 1. Obtención universal de hardware (Micrófono y Cámara en PC / Móvil)
         if (wantsVideo) {
@@ -982,12 +986,30 @@ export default function CallModal() {
 
       {/* Área Principal de Video Remoto */}
       <div className="flex-1 relative flex items-center justify-center bg-gray-950 overflow-hidden">
-        {/* Video Remoto Real */}
+        {/* Fondo con desenfoque ambiental dinámico cuando el video es vertical de móvil */}
+        {hasRemoteVideo && videoFit === 'contain' && (
+          <video
+            ref={(el) => {
+              if (el && remoteStreamRef.current && el.srcObject !== remoteStreamRef.current) {
+                el.srcObject = remoteStreamRef.current
+                el.play().catch(() => {})
+              }
+            }}
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
+          />
+        )}
+
+        {/* Video Remoto Real en Encuadre Completo (Sin recortar el plano de la cámara del teléfono) */}
         <video
           ref={setRemoteVideoRef}
           autoPlay
           playsInline
-          className={`w-full h-full object-cover transition-opacity duration-300 ${hasRemoteVideo ? 'block' : 'hidden'}`}
+          className={`relative max-w-full max-h-full transition-all duration-300 z-10 ${
+            videoFit === 'contain' ? 'object-contain' : 'w-full h-full object-cover'
+          } ${hasRemoteVideo ? 'block' : 'hidden'}`}
         />
 
         {/* Fallback de Avatar si el interlocutor aún no transmite cámara */}
@@ -1087,15 +1109,43 @@ export default function CallModal() {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setMinimized(true)}
-            className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
-            title="Minimizar llamada"
-          >
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4"/>
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Alternador de Encuadre Completo / Llenar Pantalla */}
+            {hasRemoteVideo && (
+              <button
+                type="button"
+                onClick={() => setVideoFit(f => f === 'contain' ? 'cover' : 'contain')}
+                className="text-white/80 hover:text-white px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors text-xs flex items-center gap-1.5 bg-black/40 backdrop-blur-sm border border-white/15 cursor-pointer shadow-sm"
+                title={videoFit === 'contain' ? 'Cambiar a Llenar Pantalla (recorta los bordes)' : 'Cambiar a Encuadre Completo (sin zoom ni recorte)'}
+              >
+                {videoFit === 'contain' ? (
+                  <>
+                    <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                    </svg>
+                    <span className="hidden sm:inline font-semibold">Encuadre Completo</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 9L4 4m0 0h4m-4 0v4m11-4l-5 5m5-5h-4m4 0v4M9 15l-5 5m0 0h4m-4 0v-4m11 4l-5-5m5 5h-4m4 0v-4"/>
+                    </svg>
+                    <span className="hidden sm:inline font-semibold">Llenar Pantalla</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            <button
+              onClick={() => setMinimized(true)}
+              className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+              title="Minimizar llamada"
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Banner de aviso */}
