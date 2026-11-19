@@ -413,7 +413,7 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`flex flex-col bg-wa-sidebar border-r border-white/5 sidebar-transition overflow-hidden w-full md:${
+      className={`relative flex flex-col bg-wa-sidebar border-r border-white/5 sidebar-transition overflow-hidden w-full md:${
         sidebarCollapsed ? 'w-16' : 'w-80'
       } h-full`}
     >
@@ -541,6 +541,15 @@ export default function Sidebar() {
                   🟢 Online
                 </button>
               </div>
+
+              {/* Acceso Directo: Escribir a un número */}
+              <button
+                onClick={() => setShowDirectPhone(true)}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors text-emerald-400 hover:text-emerald-300 flex-shrink-0"
+                title="Escribir a un número (Chat Directo)"
+              >
+                <span className="text-base">📞</span>
+              </button>
 
               {/* Menú de Tres Puntos (Siempre visible y protegido contra overflow) */}
               <div className="relative flex-shrink-0">
@@ -1031,6 +1040,19 @@ export default function Sidebar() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Botón Flotante Verde (FAB) — Chat Directo / Escribir a un número */}
+      {!sidebarCollapsed && (
+        <div className="absolute bottom-6 right-6 z-30 pointer-events-auto">
+          <button
+            onClick={() => setShowDirectPhone(true)}
+            title="Escribir a un número telefónico (Chat Directo)"
+            className="w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white shadow-2xl shadow-emerald-950/70 flex items-center justify-center transition-all transform hover:scale-110 border-2 border-white/20 group cursor-pointer"
+          >
+            <span className="text-2xl group-hover:scale-110 transition-transform">📞</span>
+          </button>
         </div>
       )}
 

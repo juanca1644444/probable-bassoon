@@ -100,6 +100,7 @@ export default function CallModal() {
   const offerSentRef = useRef(false)
   const pendingOfferRef = useRef(null)
   const localIceCandidatesRef = useRef([])
+  const pendingAcceptRef = useRef(false)
 
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
@@ -120,6 +121,7 @@ export default function CallModal() {
       offerSentRef.current = false
       iceQueueRef.current = []
       localIceCandidatesRef.current = []
+      pendingAcceptRef.current = false
     }
   }, [activeCall?.callId, activeCall?.type, activeCall?.isIncoming])
 
@@ -270,45 +272,72 @@ export default function CallModal() {
     const initWebRTC = async () => {
       try {
         const wantsVideo = callType === 'video' || cameraOn
-        let stream = null
+        let audioStream = null
+        let videoStream = null
 
-        // 1. Obtener stream local (Micrófono y Cámara sin forzar resolución horizontal en móviles)
+        // 1. Obtener audio (micrófono) con cancelación de eco y ruido
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
+          audioStream = await navigator.mediaDevices.getUserMedia({
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
               autoGainControl: true,
-            },
-            video: wantsVideo ? { facingMode: 'user' } : false,
+            }
           })
-        } catch (mediaErr) {
-          console.warn('[WebRTC] Falló getUserMedia con video, intentando solo audio:', mediaErr)
+        } catch (audioErr) {
+          console.error('[WebRTC] Permisos de micrófono denegados o no detectados:', audioErr)
+          setMediaWarning('Permiso de micrófono denegado en el navegador.')
+        }
+
+        // 2. Obtener video si corresponde (soporte universal para PC / Móvil / USB Webcams)
+        if (wantsVideo) {
+          // Intento A: Con facingMode ideal (preferencia en móviles sin romper navegadores de escritorio)
           try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-              },
-              video: false,
+            videoStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
             })
-            setMediaWarning('Cámara no disponible. Llamada activa solo en audio.')
-          } catch (audioErr) {
-            console.error('[WebRTC] Permisos de micrófono denegados:', audioErr)
-            setMediaWarning('Permiso de micrófono denegado. No se podrá transmitir audio.')
+          } catch (vErr1) {
+            console.warn('[WebRTC] Intento con facingMode ideal falló, intentando video: true genérico (PC):', vErr1)
+            // Intento B: video genérico directo (estándar para cámaras integradas de PC y webcams USB)
+            try {
+              videoStream = await navigator.mediaDevices.getUserMedia({ video: true })
+            } catch (vErr2) {
+              console.warn('[WebRTC] Falló acceso a cámara de video en PC/Móvil:', vErr2)
+              if (vErr2.name === 'NotAllowedError') {
+                setMediaWarning('Permiso de cámara bloqueado en el navegador. Haz clic en el candado 🔒 de la URL y actívala.')
+              } else if (vErr2.name === 'NotReadableError' || vErr2.message?.includes('could not start')) {
+                setMediaWarning('La cámara está siendo usada por otra aplicación (Zoom, Teams, etc.). Ciérrala para activarla.')
+              } else {
+                setMediaWarning('Cámara no detectada o no disponible. Llamada activa en modo solo audio.')
+              }
+            }
           }
         }
 
         if (isCancelled) {
-          if (stream) stream.getTracks().forEach(t => t.stop())
+          if (audioStream) audioStream.getTracks().forEach(t => t.stop())
+          if (videoStream) videoStream.getTracks().forEach(t => t.stop())
           return
         }
 
+        // Combinar tracks obtenidos en el MediaStream local definitivo
+        const combinedTracks = [
+          ...(audioStream ? audioStream.getAudioTracks() : []),
+          ...(videoStream ? videoStream.getVideoTracks() : [])
+        ]
+
+        if (combinedTracks.length === 0) {
+          throw new Error('No se pudo acceder a dispositivos de captura (micrófono ni cámara).')
+        }
+
+        const stream = new MediaStream(combinedTracks)
         localStreamRef.current = stream
 
-        // Conectar stream a video local
-        if (localVideoRef.current && stream && wantsVideo) {
+        const hasVideo = stream.getVideoTracks().length > 0
+        setCameraOn(hasVideo)
+
+        // Conectar stream a video local PiP
+        if (localVideoRef.current && hasVideo) {
           localVideoRef.current.srcObject = stream
           localVideoRef.current.play().catch(() => {})
         }
@@ -423,8 +452,10 @@ export default function CallModal() {
           await handleOfferSDP(pc, queuedOffer)
         }
 
-        // 6. Si somos el llamador y la llamada ya está en 'connected', enviar oferta
-        if (isInitiatorRef.current && status === 'connected' && !offerSentRef.current) {
+        // 6. Si somos el llamador y la llamada ya fue aceptada, enviar oferta
+        const currentCallStatus = useAppStore.getState().activeCall?.status
+        if (isInitiatorRef.current && (currentCallStatus === 'connected' || pendingAcceptRef.current) && !offerSentRef.current) {
+          pendingAcceptRef.current = false
           await sendOffer(pc)
         }
       } catch (err) {
@@ -493,6 +524,9 @@ export default function CallModal() {
           console.log('[WebRTC] 🚀 Receptor aceptó llamada. Enviando Oferta SDP...')
           if (pc) {
             await sendOffer(pc)
+          } else {
+            console.log('[WebRTC] ⏳ Guardando ACCEPT_CALL en espera de inicialización...')
+            pendingAcceptRef.current = true
           }
         }
       } catch (err) {
@@ -528,31 +562,45 @@ export default function CallModal() {
       setCameraOn(nextState)
     } else if (!cameraOn) {
       try {
-        const vStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' }
-        })
-        const newTrack = vStream.getVideoTracks()[0]
-        localStreamRef.current.addTrack(newTrack)
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = localStreamRef.current
-          localVideoRef.current.play().catch(() => {})
+        let vStream = null
+        try {
+          vStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          })
+        } catch {
+          vStream = await navigator.mediaDevices.getUserMedia({ video: true })
         }
-        if (pc) {
-          pc.addTrack(newTrack, localStreamRef.current)
-          const offer = await pc.createOffer()
-          await pc.setLocalDescription(offer)
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'WEBRTC_OFFER',
-              callId: activeCall?.callId,
-              offer
-            }))
+        const newTrack = vStream ? vStream.getVideoTracks()[0] : null
+        if (newTrack) {
+          localStreamRef.current.addTrack(newTrack)
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = localStreamRef.current
+            localVideoRef.current.play().catch(() => {})
           }
+          if (pc) {
+            pc.addTrack(newTrack, localStreamRef.current)
+            const offer = await pc.createOffer()
+            await pc.setLocalDescription(offer)
+            if (ws?.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'WEBRTC_OFFER',
+                callId: activeCall?.callId,
+                offer
+              }))
+            }
+          }
+          setCameraOn(true)
+          setMediaWarning('')
         }
-        setCameraOn(true)
       } catch (e) {
         console.warn('No se pudo activar la cámara:', e)
-        setMediaWarning('No se pudo encender la cámara.')
+        if (e.name === 'NotAllowedError') {
+          setMediaWarning('Permiso de cámara bloqueado en el navegador.')
+        } else if (e.name === 'NotReadableError') {
+          setMediaWarning('La cámara está siendo usada por otra aplicación.')
+        } else {
+          setMediaWarning('No se pudo encender la cámara.')
+        }
       }
     }
   }
