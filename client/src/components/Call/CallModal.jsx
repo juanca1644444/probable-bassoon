@@ -365,19 +365,24 @@ export default function CallModal() {
         const pc = new RTCPeerConnection(RTC_CONFIG)
         pcRef.current = pc
 
-        // Añadir tracks locales o transceivers de recepción a la conexión
-        if (combinedTracks.length > 0) {
-          combinedTracks.forEach(track => {
-            pc.addTrack(track, stream)
-          })
-        } else {
-          // Si el dispositivo carece de micrófono o cámara, agregamos transceivers para recibir
-          try {
+        // Añadir tracks locales a la conexión
+        const localTracks = stream ? stream.getTracks() : []
+        localTracks.forEach(track => {
+          pc.addTrack(track, stream)
+        })
+
+        // Asegurar transceivers para recepción si falta algún tipo de medio local
+        const hasLocalAudio = localTracks.some(t => t.kind === 'audio')
+        const hasLocalVideo = localTracks.some(t => t.kind === 'video')
+        try {
+          if (!hasLocalAudio) {
             pc.addTransceiver('audio', { direction: 'recvonly' })
-            if (wantsVideo) pc.addTransceiver('video', { direction: 'recvonly' })
-          } catch (trErr) {
-            console.warn('[WebRTC] addTransceiver fallback:', trErr)
           }
+          if (wantsVideo && !hasLocalVideo) {
+            pc.addTransceiver('video', { direction: 'recvonly' })
+          }
+        } catch (trErr) {
+          console.warn('[WebRTC] addTransceiver fallback:', trErr)
         }
 
         // 3. Manejo de Tracks Remotos usando event.streams nativo directo
