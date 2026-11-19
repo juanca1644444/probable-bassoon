@@ -233,7 +233,7 @@ function AppShell() {
             store.setCallStatus('connected');
             window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
           } else if (data.type === 'REJECT_CALL') {
-            store.endCall();
+            useAppStore.setState({ activeCall: null, incomingCall: null });
             window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
             store.addToast({
               id: `toast-${Date.now()}`,
@@ -243,7 +243,7 @@ function AppShell() {
               avatar: '',
             });
           } else if (data.type === 'END_CALL') {
-            store.endCall();
+            useAppStore.setState({ activeCall: null, incomingCall: null });
             window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: data }));
           } else if (
             data.type === 'WEBRTC_OFFER' ||

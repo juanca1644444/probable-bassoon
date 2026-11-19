@@ -82,6 +82,16 @@ const useAppStore = create((set, get) => ({
   // ── Chat / Message Actions ────────────────────────────────────────────────
   setChats:      (chats) => set({ chats: sortChats(chats) }),
   setContacts:   (contacts) => set({ contacts }),
+  addContact:    (contact) =>
+    set((s) => {
+      if (!contact || !contact.id) return s;
+      const exists = s.contacts.some((c) => c.id === contact.id);
+      return {
+        contacts: exists
+          ? s.contacts.map((c) => (c.id === contact.id ? { ...c, ...contact } : c))
+          : [contact, ...s.contacts]
+      };
+    }),
   setWs:         (ws) => set({ ws }),
   setConnected:  (v) => set({ isConnected: v }),
 

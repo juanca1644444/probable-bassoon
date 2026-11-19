@@ -9,7 +9,7 @@ export default function SaveContactModal({ chat, onClose, onSaved }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { chats, setChats, updateChat, addToast } = useAppStore()
+  const { chats, setChats, updateChat, addToast, addContact } = useAppStore()
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -25,7 +25,7 @@ export default function SaveContactModal({ chat, onClose, onSaved }) {
       let contactData = null
       // If chat already has a valid contactId, update it; otherwise create a new contact
       if (chat?.contactId) {
-        const res = await fetch(`http://localhost:3001/api/contacts/${chat.contactId}`, {
+        const res = await fetch(`/api/contacts/${chat.contactId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -38,7 +38,7 @@ export default function SaveContactModal({ chat, onClose, onSaved }) {
       }
 
       if (!contactData) {
-        const res = await fetch('http://localhost:3001/api/contacts', {
+        const res = await fetch('/api/contacts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -49,6 +49,10 @@ export default function SaveContactModal({ chat, onClose, onSaved }) {
           })
         })
         if (res.ok) contactData = await res.json()
+      }
+
+      if (contactData) {
+        if (addContact) addContact(contactData)
       }
 
       if (contactData && chat?.id) {

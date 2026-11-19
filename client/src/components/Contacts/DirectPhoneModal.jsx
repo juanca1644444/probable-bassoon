@@ -27,7 +27,7 @@ export default function DirectPhoneModal({ onClose, onSelectChat, initialPhone =
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { chats, setChats, setActiveChat, addToast, addMessage } = useAppStore()
+  const { chats, setChats, setActiveChat, addToast, addMessage, addContact, addOrUpdateChat } = useAppStore()
 
   // Clean raw phone numbers
   const handlePhoneChange = (e) => {
@@ -92,7 +92,7 @@ export default function DirectPhoneModal({ onClose, onSelectChat, initialPhone =
       let createdContact = null
 
       // Always create a contact record in DB so SQLite relationships work perfectly
-      const contactRes = await fetch('http://localhost:3001/api/contacts', {
+      const contactRes = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,10 +106,11 @@ export default function DirectPhoneModal({ onClose, onSelectChat, initialPhone =
       if (contactRes.ok) {
         createdContact = await contactRes.json()
         contactId = createdContact.id
+        if (addContact) addContact(createdContact)
       }
 
       // 3. Create the chat
-      const chatRes = await fetch('http://localhost:3001/api/chats', {
+      const chatRes = await fetch('/api/chats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,8 +136,10 @@ export default function DirectPhoneModal({ onClose, onSelectChat, initialPhone =
         channel: channel
       }
 
-      // 4. Update application state
-      setChats([fullChat, ...chats])
+      // 4. Update application state immediately
+      if (addOrUpdateChat) addOrUpdateChat(fullChat)
+      else setChats([fullChat, ...chats])
+
       if (onSelectChat) onSelectChat(fullChat)
       else setActiveChat(fullChat)
 

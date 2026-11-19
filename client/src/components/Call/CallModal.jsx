@@ -156,11 +156,8 @@ export default function CallModal() {
     iceQueueRef.current = []
     localIceCandidatesRef.current = []
 
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'END_CALL', callId: activeCall?.callId }))
-    }
     endCall()
-  }, [ws, activeCall, endCall])
+  }, [endCall])
 
   // Manejar tecla Escape
   useEffect(() => {
